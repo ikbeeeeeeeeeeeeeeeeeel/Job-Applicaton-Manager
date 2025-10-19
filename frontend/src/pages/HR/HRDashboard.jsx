@@ -1,40 +1,45 @@
 import { useState } from "react"
 import JobOffersManagement from "./JobOffersManagement"
 import InterviewsManagement from "./InterviewsManagement"
+import ApplicationsManagement from "./ApplicationsManagement"
+import NotificationsManagement from "./NotificationsManagement"
 
 export default function HRDashboard() {
   const [activeTab, setActiveTab] = useState("joboffers")
 
-  const tabStyle = (tabName) => ({
-    padding: "15px 30px",
-    cursor: "pointer",
-    border: "none",
-    background: activeTab === tabName ? "#0066cc" : "#f0f0f0",
-    color: activeTab === tabName ? "white" : "#333",
-    fontWeight: activeTab === tabName ? "bold" : "normal",
-    fontSize: "16px",
-    borderRadius: "8px 8px 0 0",
-    marginRight: "5px",
-    transition: "all 0.3s ease"
-  })
-
   return (
-    <div style={{ padding: "20px" }}>
-      <h1 style={{ marginBottom: "20px" }}>HR Dashboard</h1>
-      
+    <div className="container">
+      {/* Page Header */}
+      <div className="page-header">
+        <h1 className="page-title">👔 HR Dashboard</h1>
+        <p className="page-subtitle">Manage job offers, interviews, applications, and notifications</p>
+      </div>
+
       {/* Tab Navigation */}
-      <div style={{ borderBottom: "2px solid #ddd", marginBottom: "20px" }}>
+      <div className="tabs">
         <button
-          style={tabStyle("joboffers")}
+          className={`tab ${activeTab === "joboffers" ? "active" : ""}`}
           onClick={() => setActiveTab("joboffers")}
         >
-          📋 Job Offers Management
+          📋 Job Offers
         </button>
         <button
-          style={tabStyle("interviews")}
+          className={`tab ${activeTab === "interviews" ? "active" : ""}`}
           onClick={() => setActiveTab("interviews")}
         >
-          📅 Interviews Management
+          📅 Interviews
+        </button>
+        <button
+          className={`tab ${activeTab === "applications" ? "active" : ""}`}
+          onClick={() => setActiveTab("applications")}
+        >
+          📄 Applications
+        </button>
+        <button
+          className={`tab ${activeTab === "notifications" ? "active" : ""}`}
+          onClick={() => setActiveTab("notifications")}
+        >
+          🔔 Notifications
         </button>
       </div>
 
@@ -42,6 +47,8 @@ export default function HRDashboard() {
       <div>
         {activeTab === "joboffers" && <JobOffersManagement />}
         {activeTab === "interviews" && <InterviewsManagement />}
+        {activeTab === "applications" && <ApplicationsManagement />}
+        {activeTab === "notifications" && <NotificationsManagement />}
       </div>
     </div>
   )

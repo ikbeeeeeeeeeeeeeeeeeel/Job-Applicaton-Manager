@@ -3,6 +3,10 @@ import { useEffect, useState } from "react"
 export default function InterviewsManagement() {
   const [interviews, setInterviews] = useState([])
   const [editingInterview, setEditingInterview] = useState(null)
+  
+  // Lists for dropdowns
+  const [candidates, setCandidates] = useState([])
+  const [projectManagers, setProjectManagers] = useState([])
 
   // Interview fields
   const [meetingLink, setMeetingLink] = useState("")
@@ -19,9 +23,31 @@ export default function InterviewsManagement() {
       console.error("Failed to fetch interviews:", err)
     }
   }
+  
+  const fetchCandidates = async () => {
+    try {
+      const res = await fetch("http://localhost:8089/api/candidates")
+      const data = await res.json()
+      setCandidates(data)
+    } catch (err) {
+      console.error("Failed to fetch candidates:", err)
+    }
+  }
+  
+  const fetchProjectManagers = async () => {
+    try {
+      const res = await fetch("http://localhost:8089/api/projectmanagers")
+      const data = await res.json()
+      setProjectManagers(data)
+    } catch (err) {
+      console.error("Failed to fetch project managers:", err)
+    }
+  }
 
   useEffect(() => {
     fetchInterviews()
+    fetchCandidates()
+    fetchProjectManagers()
   }, [])
 
   const createInterview = async (e) => {
@@ -104,77 +130,165 @@ export default function InterviewsManagement() {
   }
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Interviews Management</h2>
-
+    <div>
       {/* Create Interview Form */}
-      <div style={{ marginBottom: "30px", padding: "20px", border: "1px solid #ddd", borderRadius: "8px" }}>
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title">📅 Plan New Interview</h3>
+          <p className="card-subtitle">Schedule an interview with a candidate and project manager</p>
+        </div>
         <form onSubmit={createInterview}>
-          <h3>Plan New Interview</h3>
-          <div style={{ marginBottom: "10px" }}>
-            <input
-              type="number"
-              placeholder="Candidate ID"
-              value={candidateId}
-              onChange={(e) => setCandidateId(e.target.value)}
-              required
-              style={{ width: "100%", padding: "8px" }}
-            />
+          <div className="grid grid-cols-2">
+            <div className="form-group">
+              <label className="form-label">Select Candidate *</label>
+              <select
+                className="form-select"
+                value={candidateId}
+                onChange={(e) => setCandidateId(e.target.value)}
+                required
+              >
+                <option value="">Choose candidate...</option>
+                {candidates.map((candidate) => (
+                  <option key={candidate.id} value={candidate.id}>
+                    {candidate.firstname} {candidate.lastname} ({candidate.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Select Project Manager *</label>
+              <select
+                className="form-select"
+                value={pmId}
+                onChange={(e) => setPmId(e.target.value)}
+                required
+              >
+                <option value="">Choose project manager...</option>
+                {projectManagers.map((pm) => (
+                  <option key={pm.id} value={pm.id}>
+                    {pm.firstname} {pm.lastname} ({pm.email || pm.username})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div style={{ marginBottom: "10px" }}>
-            <input
-              type="number"
-              placeholder="Project Manager ID"
-              value={pmId}
-              onChange={(e) => setPmId(e.target.value)}
-              required
-              style={{ width: "100%", padding: "8px" }}
-            />
+
+          <div className="grid grid-cols-2">
+            <div className="form-group">
+              <label className="form-label">Interview Date & Time *</label>
+              <input
+                type="datetime-local"
+                className="form-input"
+                value={interviewDate}
+                onChange={(e) => setInterviewDate(e.target.value)}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Meeting Link</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g. https://meet.google.com/..."
+                value={meetingLink}
+                onChange={(e) => setMeetingLink(e.target.value)}
+              />
+            </div>
           </div>
-          <div style={{ marginBottom: "10px" }}>
-            <input
-              type="datetime-local"
-              placeholder="Interview Date"
-              value={interviewDate}
-              onChange={(e) => setInterviewDate(e.target.value)}
-              required
-              style={{ width: "100%", padding: "8px" }}
-            />
-          </div>
-          <div style={{ marginBottom: "10px" }}>
-            <input
-              type="text"
-              placeholder="Meeting Link"
-              value={meetingLink}
-              onChange={(e) => setMeetingLink(e.target.value)}
-              style={{ width: "100%", padding: "8px" }}
-            />
-          </div>
-          <button type="submit" style={{ padding: "10px 20px", cursor: "pointer" }}>
+
+          <button type="submit" className="btn btn-primary">
             📅 Plan Interview
           </button>
         </form>
       </div>
 
       {/* Interviews List */}
-      <div>
-        <h3>All Interviews ({interviews.length})</h3>
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title">📅 All Interviews ({interviews.length})</h3>
+        </div>
+
         {interviews.length === 0 ? (
-          <p>No interviews scheduled.</p>
+          <div className="empty-state">
+            <div className="empty-state-icon">📅</div>
+            <p>No interviews scheduled yet. Create your first interview above!</p>
+          </div>
         ) : (
-          <ul style={{ listStyle: "none", padding: 0 }}>
+          <ul className="list-none">
             {interviews.map((iv) => (
-              <li key={iv.id} style={{ marginBottom: "20px", padding: "15px", border: "1px solid #ddd", borderRadius: "8px" }}>
-                <strong style={{ fontSize: "18px" }}>Interview ID: {iv.id}</strong>
-                <div style={{ marginTop: "10px" }}>
-                  <p>📅 <strong>Date:</strong> {new Date(iv.interviewDate).toLocaleString()}</p>
-                  <p>👤 <strong>Candidate:</strong> {iv.candidate?.firstname} {iv.candidate?.lastname} (ID: {iv.candidate?.id})</p>
-                  <p>🧑‍💼 <strong>Recruiter:</strong> {iv.recruiter?.username || "N/A"} (ID: {iv.recruiter?.id})</p>
-                  <p>🔗 <strong>Meeting Link:</strong> {iv.meetingLink || "N/A"}</p>
-                  <p>🏷 <strong>Status:</strong> {iv.status || "Planned"}</p>
-                  <p>🧾 <strong>Result:</strong> {iv.result || "Pending"}</p>
+              <li key={iv.id} className="list-item">
+                <div className="flex justify-between items-center" style={{ marginBottom: 'var(--spacing-md)' }}>
+                  <h4 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 600, margin: 0 }}>
+                    📅 Interview: {iv.candidate?.firstname} {iv.candidate?.lastname}
+                  </h4>
+                  <div className="flex gap-2">
+                    <span className={`badge ${
+                      iv.status === 'Completed' ? 'badge-success' : 
+                      iv.status === 'Cancelled' ? 'badge-danger' : 'badge-info'
+                    }`}>
+                      {iv.status || "Planned"}
+                    </span>
+                    <span className={`badge ${
+                      iv.result === 'Accepted' ? 'badge-success' : 
+                      iv.result === 'Rejected' ? 'badge-danger' : 'badge-warning'
+                    }`}>
+                      {iv.result || "Pending"}
+                    </span>
+                  </div>
                 </div>
-                <div style={{ marginTop: "10px" }}>
+
+                <div className="grid grid-cols-2" style={{ gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
+                  <div>
+                    <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--gray-500)', marginBottom: 'var(--spacing-xs)' }}>
+                      👤 Candidate
+                    </p>
+                    <p style={{ fontSize: 'var(--font-size-base)', fontWeight: 500, margin: 0 }}>
+                        {iv.candidate?.firstname} {iv.candidate?.lastname}
+                    </p>
+                    <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--gray-400)', margin: 0 }}>
+                      {iv.candidate?.email}
+                    </p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--gray-500)', marginBottom: 'var(--spacing-xs)' }}>
+                      🧑‍💼 Project Manager
+                    </p>
+                    <p style={{ fontSize: 'var(--font-size-base)', fontWeight: 500, margin: 0 }}>
+                      {iv.recruiter?.firstname} {iv.recruiter?.lastname}
+                    </p>
+                    <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--gray-400)', margin: 0 }}>
+                      {iv.recruiter?.email || iv.recruiter?.username}
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ padding: 'var(--spacing-md)', background: 'var(--gray-50)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--spacing-md)' }}>
+                  <div style={{ marginBottom: 'var(--spacing-sm)' }}>
+                    <strong style={{ fontSize: 'var(--font-size-sm)' }}>📅 Date & Time:</strong>
+                    <span style={{ marginLeft: 'var(--spacing-sm)', fontSize: 'var(--font-size-sm)' }}>
+                      {new Date(iv.interviewDate).toLocaleString()}
+                    </span>
+                  </div>
+                  <div>
+                    <strong style={{ fontSize: 'var(--font-size-sm)' }}>🔗 Meeting Link:</strong>
+                    {iv.meetingLink ? (
+                      <a 
+                        href={iv.meetingLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ marginLeft: 'var(--spacing-sm)', fontSize: 'var(--font-size-sm)', color: 'var(--primary)' }}
+                      >
+                        Join Meeting
+                      </a>
+                    ) : (
+                      <span style={{ marginLeft: 'var(--spacing-sm)', fontSize: 'var(--font-size-sm)', color: 'var(--gray-400)' }}>
+                        Not provided
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
                   <button
                     onClick={() =>
                       setEditingInterview({
@@ -183,13 +297,13 @@ export default function InterviewsManagement() {
                         projectManagerId: iv.recruiter?.id,
                       })
                     }
-                    style={{ marginRight: "10px", padding: "5px 15px", cursor: "pointer" }}
+                    className="btn btn-outline btn-sm"
                   >
                     ✏️ Edit
                   </button>
                   <button
                     onClick={() => deleteInterview(iv.id)}
-                    style={{ padding: "5px 15px", cursor: "pointer", background: "#ff4444", color: "white", border: "none", borderRadius: "4px" }}
+                    className="btn btn-danger btn-sm"
                   >
                     🗑 Delete
                   </button>
@@ -202,111 +316,99 @@ export default function InterviewsManagement() {
 
       {/* Edit Interview Modal */}
       {editingInterview && (
-        <div style={{
-          position: "fixed",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          background: "white",
-          padding: "30px",
-          border: "2px solid #333",
-          borderRadius: "8px",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
-          zIndex: 1000,
-          minWidth: "400px"
-        }}>
-          <h3>Edit Interview: {editingInterview.id}</h3>
-          <div style={{ marginBottom: "10px" }}>
-            <label>Candidate ID:</label>
-            <input
-              type="number"
-              placeholder="Candidate ID"
-              value={editingInterview.candidateId}
-              onChange={(e) => setEditingInterview({ ...editingInterview, candidateId: e.target.value })}
-              style={{ width: "100%", padding: "8px" }}
-            />
-          </div>
-          <div style={{ marginBottom: "10px" }}>
-            <label>Project Manager ID:</label>
-            <input
-              type="number"
-              placeholder="Project Manager ID"
-              value={editingInterview.projectManagerId}
-              onChange={(e) => setEditingInterview({ ...editingInterview, projectManagerId: e.target.value })}
-              style={{ width: "100%", padding: "8px" }}
-            />
-          </div>
-          <div style={{ marginBottom: "10px" }}>
-            <label>Interview Date:</label>
-            <input
-              type="datetime-local"
-              value={editingInterview.interviewDate}
-              onChange={(e) => setEditingInterview({ ...editingInterview, interviewDate: e.target.value })}
-              style={{ width: "100%", padding: "8px" }}
-            />
-          </div>
-          <div style={{ marginBottom: "10px" }}>
-            <label>Meeting Link:</label>
-            <input
-              type="text"
-              placeholder="Meeting Link"
-              value={editingInterview.meetingLink}
-              onChange={(e) => setEditingInterview({ ...editingInterview, meetingLink: e.target.value })}
-              style={{ width: "100%", padding: "8px" }}
-            />
-          </div>
-          <div style={{ marginBottom: "10px" }}>
-            <label>Status:</label>
-            <select
-              value={editingInterview.status || ""}
-              onChange={(e) => setEditingInterview({ ...editingInterview, status: e.target.value })}
-              style={{ width: "100%", padding: "8px" }}
-            >
-              <option value="Planned">Planned</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-          </div>
-          <div style={{ marginBottom: "10px" }}>
-            <label>Result:</label>
-            <select
-              value={editingInterview.result || ""}
-              onChange={(e) => setEditingInterview({ ...editingInterview, result: e.target.value })}
-              style={{ width: "100%", padding: "8px" }}
-            >
-              <option value="Pending">Pending</option>
-              <option value="Accepted">Accepted</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-          </div>
-          <div style={{ marginTop: "20px" }}>
-            <button
-              onClick={() => modifyInterview(editingInterview)}
-              style={{ marginRight: "10px", padding: "10px 20px", cursor: "pointer" }}
-            >
-              💾 Save Changes
-            </button>
-            <button
-              onClick={() => setEditingInterview(null)}
-              style={{ padding: "10px 20px", cursor: "pointer" }}
-            >
-              ❌ Cancel
-            </button>
-          </div>
-        </div>
-      )}
+        <>
+          <div className="modal-overlay" onClick={() => setEditingInterview(null)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <h3 style={{ marginBottom: 'var(--spacing-lg)' }}>✏️ Edit Interview #{editingInterview.id}</h3>
+              
+              <div className="grid grid-cols-2">
+                <div className="form-group">
+                  <label className="form-label">Candidate ID</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    placeholder="Candidate ID"
+                    value={editingInterview.candidateId}
+                    onChange={(e) => setEditingInterview({ ...editingInterview, candidateId: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Project Manager ID</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    placeholder="Project Manager ID"
+                    value={editingInterview.projectManagerId}
+                    onChange={(e) => setEditingInterview({ ...editingInterview, projectManagerId: e.target.value })}
+                  />
+                </div>
+              </div>
 
-      {/* Overlay */}
-      {editingInterview && (
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "rgba(0,0,0,0.5)",
-          zIndex: 999
-        }} onClick={() => setEditingInterview(null)} />
+              <div className="form-group">
+                <label className="form-label">Interview Date & Time</label>
+                <input
+                  type="datetime-local"
+                  className="form-input"
+                  value={editingInterview.interviewDate}
+                  onChange={(e) => setEditingInterview({ ...editingInterview, interviewDate: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Meeting Link</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Meeting Link"
+                  value={editingInterview.meetingLink}
+                  onChange={(e) => setEditingInterview({ ...editingInterview, meetingLink: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-2">
+                <div className="form-group">
+                  <label className="form-label">Status</label>
+                  <select
+                    className="form-select"
+                    value={editingInterview.status || ""}
+                    onChange={(e) => setEditingInterview({ ...editingInterview, status: e.target.value })}
+                  >
+                    <option value="Planned">Planned</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Result</label>
+                  <select
+                    className="form-select"
+                    value={editingInterview.result || ""}
+                    onChange={(e) => setEditingInterview({ ...editingInterview, result: e.target.value })}
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="Accepted">Accepted</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-2" style={{ marginTop: 'var(--spacing-lg)' }}>
+                <button
+                  onClick={() => modifyInterview(editingInterview)}
+                  className="btn btn-primary"
+                >
+                  💾 Save Changes
+                </button>
+                <button
+                  onClick={() => setEditingInterview(null)}
+                  className="btn btn-outline"
+                >
+                  ❌ Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

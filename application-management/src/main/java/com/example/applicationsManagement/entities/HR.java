@@ -16,4 +16,16 @@ import java.io.Serializable;
 public class HR extends User implements Serializable {
 
     private String departement;
+    private Long phone;
+    private String education;
+    
+    /**
+     * Automatically set role to HR before persisting to database
+     */
+    @PrePersist
+    public void prePersist() {
+        if (this.getRole() == null || this.getRole().isEmpty()) {
+            this.setRole("HR");
+        }
+    }
 }

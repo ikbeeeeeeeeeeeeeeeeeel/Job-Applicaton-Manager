@@ -1,6 +1,5 @@
 package com.example.applicationsManagement.controllers;
 
-import com.example.applicationsManagement.entities.Candidate;
 import com.example.applicationsManagement.entities.Interview;
 import com.example.applicationsManagement.entities.ProjectManager;
 import com.example.applicationsManagement.services.ProjectManagerService;
@@ -13,10 +12,19 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/projectmanagers")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // For frontend access
+@CrossOrigin(origins = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
 public class ProjectManagerController {
 
     private final ProjectManagerService pmService;
+
+    /**
+     * EN: List all project managers
+     * FR: Lister tous les chefs de projet
+     */
+    @GetMapping
+    public List<ProjectManager> getAllProjectManagers() {
+        return pmService.getAllProjectManagers();
+    }
 
     @PostMapping("/create")
     public ProjectManager createPm(@RequestBody ProjectManager pm) {
@@ -40,4 +48,17 @@ public class ProjectManagerController {
         return ResponseEntity.ok("Evaluation updated");
     }
 
+    /**
+     * EN: Update PM profile (email cannot be changed - company email)
+     * FR: Mettre à jour le profil PM (l'email ne peut pas être modifié - email de l'entreprise)
+     */
+    @PutMapping("/{id}/profile")
+    public ResponseEntity<?> updateProfile(@PathVariable Long id, @RequestBody java.util.Map<String, Object> updates) {
+        try {
+            ProjectManager pm = pmService.updateProfile(id, updates);
+            return ResponseEntity.ok(pm);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Collections.singletonMap("message", e.getMessage()));
+        }
+    }
 }

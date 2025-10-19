@@ -15,10 +15,19 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/candidates")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // For frontend access
+@CrossOrigin(origins = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
 public class CandidateController {
 
     private final CandidateService candidateService;
+
+    /**
+     * EN: List all candidates
+     * FR: Lister tous les candidats
+     */
+    @GetMapping
+    public List<Candidate> getAllCandidates() {
+        return candidateService.getAllCandidates();
+    }
 
     @GetMapping("/{id}")
     public Candidate getCandidate(@PathVariable Long id) {
@@ -42,11 +51,16 @@ public class CandidateController {
      * EN: Apply for a job offer
      * FR: Postuler à une offre d'emploi
      */
-    @PostMapping("/apply")
-    public ResponseEntity<Application> applyForJob(@RequestBody ApplicationDTO request) {
-        Application application = candidateService.applyForJob(
-                request.getCandidateId(), request.getJobOfferId());
-        return ResponseEntity.ok(application);
+    @PostMapping(value = "/apply", consumes = {"application/json", "application/json;charset=UTF-8"})
+    public ResponseEntity<?> applyForJob(@RequestBody ApplicationDTO request) {
+        try {
+            Application application = candidateService.applyForJob(
+                    request.getCandidateId(), request.getJobOfferId());
+            return ResponseEntity.ok(application);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(java.util.Collections.singletonMap("message", e.getMessage()));
+        }
     }
 
     /**
@@ -65,5 +79,19 @@ public class CandidateController {
     @GetMapping("/{candidateId}/interviews")
     public List<Interview> listInterviews(@PathVariable Long candidateId) {
         return candidateService.listInterviews(candidateId);
+    }
+
+    /**
+     * EN: Update candidate profile (including optional password change)
+     * FR: Mettre à jour le profil du candidat (y compris le changement de mot de passe optionnel)
+     */
+    @PutMapping("/{id}/profile")
+    public ResponseEntity<?> updateProfile(@PathVariable Long id, @RequestBody java.util.Map<String, Object> updates) {
+        try {
+            Candidate candidate = candidateService.updateProfile(id, updates);
+            return ResponseEntity.ok(candidate);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Collections.singletonMap("message", e.getMessage()));
+        }
     }
 }

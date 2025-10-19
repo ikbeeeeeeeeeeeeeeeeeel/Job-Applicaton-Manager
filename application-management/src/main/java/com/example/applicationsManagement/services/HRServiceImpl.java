@@ -3,6 +3,7 @@ package com.example.applicationsManagement.services;
 import com.example.applicationsManagement.entities.*;
 import com.example.applicationsManagement.repositories.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -18,14 +19,15 @@ public class HRServiceImpl implements HRService{
     private final NotificationRepository notificationRepository;
     private final CandidateRepository candidateRepository;
     private final ProjectManagerRepository projectManagerRepository;
+    private final HRRepository hrRepository;
 
     @Override
     public List<JobOffer> listJobOffers() {
-        return jobOfferRepository.findAll();
+        return jobOfferRepository.findAll(Sort.by(Sort.Direction.DESC, "publicationDate"));
     }
     @Override
     public List<Interview> listAllInterviews() {
-        return interviewRepository.findAll();
+        return interviewRepository.findAll(Sort.by(Sort.Direction.DESC, "interviewDate"));
     }
 
     @Override
@@ -43,6 +45,15 @@ public class HRServiceImpl implements HRService{
         jobOffer.setStatus("CLOSED");
         return jobOfferRepository.save(jobOffer);
     }
+
+    @Override
+    public JobOffer openJobOffer(Long jobOfferId) {
+        JobOffer jobOffer = jobOfferRepository.findById(jobOfferId)
+                .orElseThrow(() -> new RuntimeException("Job offer not found with id: " + jobOfferId));
+        jobOffer.setStatus("OPEN");
+        return jobOfferRepository.save(jobOffer);
+    }
+
     @Override
     public void deleteJobOffer(Long id) {
         if (!jobOfferRepository.existsById(id)) {
@@ -162,5 +173,50 @@ public class HRServiceImpl implements HRService{
     public void sendNotification(Notification notification) {
         notification.setSendingDate(new java.util.Date());
         notificationRepository.save(notification);
+    }
+
+    @Override
+    public int closeExpiredJobOffers() {
+        Date now = new Date();
+        List<JobOffer> expiredOffers = jobOfferRepository.findExpiredJobOffers(now);
+        
+        for (JobOffer offer : expiredOffers) {
+            offer.setStatus("CLOSED");
+            jobOfferRepository.save(offer);
+        }
+        
+        return expiredOffers.size();
+    }
+
+    @Override
+    public HR updateProfile(Long id, java.util.Map<String, Object> updates) {
+        HR existing = hrRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("HR not found with id: " + id));
+
+        // Handle password change if provided
+        if (updates.containsKey("currentPassword") && updates.containsKey("newPassword")) {
+            String currentPassword = (String) updates.get("currentPassword");
+            String newPassword = (String) updates.get("newPassword");
+            
+            if (!existing.getPassword().equals(currentPassword)) {
+                throw new RuntimeException("Current password is incorrect");
+            }
+            
+            existing.setPassword(newPassword);
+        }
+
+        // Update profile fields (EMAIL CANNOT BE CHANGED - company email)
+        if (updates.containsKey("firstname")) {
+            existing.setFirstname((String) updates.get("firstname"));
+        }
+        if (updates.containsKey("lastname")) {
+            existing.setLastname((String) updates.get("lastname"));
+        }
+        if (updates.containsKey("username")) {
+            existing.setUsername((String) updates.get("username"));
+        }
+        // Note: Email is NOT updatable for HR - it's a company email
+
+        return hrRepository.save(existing);
     }
 }

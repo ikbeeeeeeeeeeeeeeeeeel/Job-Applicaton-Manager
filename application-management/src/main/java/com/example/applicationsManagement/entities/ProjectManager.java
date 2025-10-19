@@ -19,7 +19,21 @@ import java.util.List;
 public class ProjectManager extends User implements Serializable {
 
     private String departement;
+    private Long phone;
+    private String education;
 
     @OneToMany(mappedBy = "recruiter", cascade = CascadeType.ALL)
+    @OrderBy("interviewDate DESC")
+    @JsonIgnore
     private List<Interview> interviews;
+    
+    /**
+     * Automatically set role to PM before persisting to database
+     */
+    @PrePersist
+    public void prePersist() {
+        if (this.getRole() == null || this.getRole().isEmpty()) {
+            this.setRole("PM");
+        }
+    }
 }

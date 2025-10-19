@@ -1,7 +1,6 @@
 package com.example.applicationsManagement.entities;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -27,12 +26,12 @@ public class Application implements Serializable {
     private String aiScoreExplanation;
 
     @ManyToOne
-    @JsonIgnore
+    @JsonIgnoreProperties({"applications", "interviews", "password"})  // Ignore circular refs and sensitive data
     private Candidate candidate;
 
     @ManyToOne
     @JoinColumn(name = "job_offer_id")
-    @JsonBackReference
+    @JsonIgnoreProperties("applications")  // Ignore applications list to prevent circular reference
     private JobOffer jobOffer;
 
     public void updateStatus(String newStatus) {

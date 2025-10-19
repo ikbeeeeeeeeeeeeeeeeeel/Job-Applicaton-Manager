@@ -3,7 +3,6 @@ package com.example.applicationsManagement.controllers;
 import com.example.applicationsManagement.entities.*;
 import com.example.applicationsManagement.services.HRService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,7 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/hr")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // For frontend access
+@CrossOrigin(origins = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
 public class HRController {
 
     private final HRService hrService;
@@ -24,7 +23,7 @@ public class HRController {
     /**
      * EN: Publish a new job offer
      */
-    @PostMapping(value = "/joboffers/publish", consumes = {"application/json", "application/json;charset=UTF-8"})
+    @PostMapping("/joboffers/publish")
     public JobOffer publishJobOffer(@RequestBody JobOffer jobOffer) {
         System.out.println("📥 Received JobOffer: " + jobOffer);
         return hrService.publishJobOffer(jobOffer);
@@ -39,6 +38,14 @@ public class HRController {
         return ResponseEntity.ok(closedOffer);
     }
 
+    /**
+     * EN: Reopen a closed job offer
+     **/
+    @PutMapping("/joboffers/{jobOfferId}/open")
+    public ResponseEntity<JobOffer> openJobOffer(@PathVariable Long jobOfferId) {
+        JobOffer openedOffer = hrService.openJobOffer(jobOfferId);
+        return ResponseEntity.ok(openedOffer);
+    }
 
     /**
      * EN: Modify an existing job offer
@@ -52,6 +59,15 @@ public class HRController {
     public ResponseEntity<Void> deleteJobOffer(@PathVariable Long id) {
         hrService.deleteJobOffer(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * EN: Manually trigger closing of expired job offers (for testing/admin use)
+     */
+    @PostMapping("/joboffers/close-expired")
+    public ResponseEntity<String> closeExpiredJobOffers() {
+        int closedCount = hrService.closeExpiredJobOffers();
+        return ResponseEntity.ok(closedCount + " expired job offer(s) closed successfully");
     }
 
     /**
@@ -134,5 +150,19 @@ public class HRController {
     @PostMapping("/notifications")
     public void sendNotification(@RequestBody Notification notification) {
         hrService.sendNotification(notification);
+    }
+
+    /**
+     * EN: Update HR profile (email cannot be changed - company email)
+     * FR: Mettre à jour le profil RH (l'email ne peut pas être modifié - email de l'entreprise)
+     */
+    @PutMapping("/{id}/profile")
+    public ResponseEntity<?> updateProfile(@PathVariable Long id, @RequestBody java.util.Map<String, Object> updates) {
+        try {
+            HR hr = hrService.updateProfile(id, updates);
+            return ResponseEntity.ok(hr);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Collections.singletonMap("message", e.getMessage()));
+        }
     }
 }

@@ -1,7 +1,7 @@
 package com.example.applicationsManagement.entities;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -18,7 +18,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level= AccessLevel.PRIVATE)
-@Table(name = "job_offre")
+@Table(name = "job_offer")
 public class JobOffer implements Serializable{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,7 +26,7 @@ public class JobOffer implements Serializable{
     private String title;
     private String description;
     private String location;
-    private Double salary;
+    private String salary;
     private String contractType;
     private String status;
     private String skills;
@@ -40,7 +40,8 @@ public class JobOffer implements Serializable{
     private Date deadline;
 
     @OneToMany(mappedBy = "jobOffer", cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @OrderBy("submissionDate DESC")
+    @JsonIgnoreProperties("jobOffer")  // Ignore jobOffer in applications to prevent circular reference
     private List<Application> applications;
 
     public void publish() { this.status = "Published"; }

@@ -1,7 +1,6 @@
 package com.example.applicationsManagement.entities;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -17,16 +16,28 @@ import java.util.List;
 @FieldDefaults(level= AccessLevel.PRIVATE)
 @Entity
 public class Candidate extends User implements Serializable{
-    private String firstname;
-    private String lastname;
+    // firstname and lastname inherited from User class
     private Long phone;
     private String resume;
     private String coverLetter;
 
     @OneToMany(mappedBy = "candidate", cascade = CascadeType.ALL)
-    @JsonIgnore
+    @OrderBy("submissionDate DESC")
+    @JsonIgnoreProperties({"candidate", "jobOffer"})
     private List<Application> applications;
 
     @OneToMany(mappedBy = "candidate", cascade = CascadeType.ALL)
+    @OrderBy("interviewDate DESC")
+    @JsonIgnoreProperties("candidate")
     private List<Interview> interviews;
+    
+    /**
+     * Automatically set role to CANDIDATE before persisting to database
+     */
+    @PrePersist
+    public void prePersist() {
+        if (this.getRole() == null || this.getRole().isEmpty()) {
+            this.setRole("CANDIDATE");
+        }
+    }
 }
