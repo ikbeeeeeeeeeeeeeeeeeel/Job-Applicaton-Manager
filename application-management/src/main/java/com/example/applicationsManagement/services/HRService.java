@@ -14,7 +14,7 @@ public interface HRService {
     JobOffer modifyJobOffer(JobOffer jobOffer);
     void deleteJobOffer(Long id);
     Interview planMeeting(Long candidateId, Long projectManagerId, Date date);
-    Interview createInterview(Interview interview, Long candidateId, Long projectManagerId);
+    Interview createInterview(Interview interview, Long candidateId, Long projectManagerId, Long applicationId);
     Interview updateInterview(Long id, Interview updatedInterview, Long candidateId, Long projectManagerId);
     void deleteInterview(Long id);
     void cancelInterview(Long interviewId);

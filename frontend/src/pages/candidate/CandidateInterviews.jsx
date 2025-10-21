@@ -56,15 +56,18 @@ export default function CandidateInterviews() {
                   <div className="flex gap-2">
                     <span className={`badge ${
                       interview.status === 'Completed' ? 'badge-success' : 
-                      interview.status === 'Cancelled' ? 'badge-danger' : 'badge-info'
+                      interview.status === 'Cancelled' ? 'badge-danger' : 
+                      interview.status === 'No Show' ? 'badge-warning' : 'badge-info'
                     }`}>
-                      {interview.status || "Scheduled"}
+                      {interview.status === 'No Show' ? 'Absent' : interview.status || "Scheduled"}
                     </span>
                     <span className={`badge ${
-                      interview.result === 'Accepted' ? 'badge-success' : 
-                      interview.result === 'Rejected' ? 'badge-danger' : 'badge-warning'
+                      interview.result === 'ACCEPTED' ? 'badge-success' : 
+                      interview.result === 'REJECTED' ? 'badge-danger' : 'badge-warning'
                     }`}>
-                      {interview.result || "Pending"}
+                      {interview.result === 'ACCEPTED' ? '✅ Accepted' : 
+                       interview.result === 'REJECTED' ? '❌ Rejected' : 
+                       '⏳ Pending'}
                     </span>
                   </div>
                 </div>

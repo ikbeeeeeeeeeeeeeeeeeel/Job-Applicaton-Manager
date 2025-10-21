@@ -43,6 +43,7 @@ export default function ApplicationsManagement() {
   // Interview planning modal state
   const [showInterviewModal, setShowInterviewModal] = useState(false)
   const [selectedCandidate, setSelectedCandidate] = useState(null)
+  const [selectedApplicationId, setSelectedApplicationId] = useState(null)
   const [projectManagers, setProjectManagers] = useState([])
   const [interviewForm, setInterviewForm] = useState({
     projectManagerId: '',
@@ -149,14 +150,16 @@ export default function ApplicationsManagement() {
   /**
    * Open interview planning modal for a candidate
    * @param {Object} candidate - The candidate object from the application
+   * @param {Number} applicationId - The application ID
    */
-  const openInterviewModal = (candidate) => {
+  const openInterviewModal = (candidate, applicationId) => {
     console.log('Opening interview modal for candidate:', candidate)
     if (!candidate) {
       alert('❌ Candidate information not available')
       return
     }
     setSelectedCandidate(candidate)
+    setSelectedApplicationId(applicationId)
     setShowInterviewModal(true)
     setInterviewForm({
       projectManagerId: '',
@@ -173,7 +176,8 @@ export default function ApplicationsManagement() {
     try {
       const params = new URLSearchParams({
         candidateId: selectedCandidate.id,
-        projectManagerId: interviewForm.projectManagerId
+        projectManagerId: interviewForm.projectManagerId,
+        applicationId: selectedApplicationId
       })
       
       const res = await fetch(`http://localhost:8089/api/hr/interview/create?${params.toString()}`, {
@@ -268,6 +272,9 @@ export default function ApplicationsManagement() {
     // Pending count: filter applications where status is "PENDING", then count them
     pending: applications.filter(app => app.status === "PENDING").length,
     
+    // Interview scheduled count
+    interviewScheduled: applications.filter(app => app.status === "INTERVIEW_SCHEDULED").length,
+    
     // Accepted count: filter applications where status is "ACCEPTED", then count them
     accepted: applications.filter(app => app.status === "ACCEPTED").length,
     
@@ -348,7 +355,7 @@ export default function ApplicationsManagement() {
             </div>
 
             {/* Statistics */}
-            <div className="grid grid-cols-4" style={{ gap: 'var(--spacing-md)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 'var(--spacing-md)' }}>
               <div style={{ padding: 'var(--spacing-md)', background: 'var(--gray-50)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
                 <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: 'var(--primary)' }}>
                   {stats.total}
@@ -363,6 +370,14 @@ export default function ApplicationsManagement() {
                 </div>
                 <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--gray-600)' }}>
                   Pending Review
+                </div>
+              </div>
+              <div style={{ padding: 'var(--spacing-md)', background: 'var(--info-light)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+                <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: 'var(--info)' }}>
+                  {stats.interviewScheduled}
+                </div>
+                <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--gray-600)' }}>
+                  Interview Scheduled
                 </div>
               </div>
               <div style={{ padding: 'var(--spacing-md)', background: 'var(--secondary-light)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
@@ -396,6 +411,7 @@ export default function ApplicationsManagement() {
                 >
                   <option value="ALL">All Applications</option>
                   <option value="PENDING">Pending</option>
+                  <option value="INTERVIEW_SCHEDULED">Interview Scheduled</option>
                   <option value="ACCEPTED">Accepted</option>
                   <option value="REJECTED">Rejected</option>
                 </select>
@@ -514,30 +530,34 @@ export default function ApplicationsManagement() {
 
                     {/* Action Buttons */}
                     <div className="flex gap-2">
-                      <button 
-                        onClick={() => openInterviewModal(app.candidate)} 
-                        className="btn btn-primary btn-sm"
-                        title="Schedule an interview with this candidate"
-                      >
-                        📅 Plan Interview
-                      </button>
-                      {app.status !== 'ACCEPTED' && (
-                        <button 
-                          onClick={() => reviewApplication(app.id, "ACCEPTED")} 
-                          className="btn btn-secondary btn-sm"
-                        >
-                          ✅ Accept
-                        </button>
+                      {app.status === 'PENDING' && (
+                        <>
+                          <button 
+                            onClick={() => openInterviewModal(app.candidate, app.id)} 
+                            className="btn btn-primary btn-sm"
+                            title="Schedule an interview with this candidate"
+                          >
+                            📅 Plan Interview
+                          </button>
+                          <button 
+                            onClick={() => reviewApplication(app.id, "REJECTED")} 
+                            className="btn btn-danger btn-sm"
+                          >
+                            ❌ Reject
+                          </button>
+                        </>
                       )}
-                      {app.status !== 'REJECTED' && (
-                        <button 
-                          onClick={() => reviewApplication(app.id, "REJECTED")} 
-                          className="btn btn-danger btn-sm"
-                        >
-                          ❌ Reject
-                        </button>
+                      {app.status === 'INTERVIEW_SCHEDULED' && (
+                        <span className="badge badge-info" style={{ fontSize: 'var(--font-size-sm)' }}>
+                          ⏳ Waiting for PM decision
+                        </span>
                       )}
-                      {app.status !== 'PENDING' && (
+                      {app.status === 'ACCEPTED' && (
+                        <span className="badge badge-success" style={{ fontSize: 'var(--font-size-sm)' }}>
+                          ✅ Hired
+                        </span>
+                      )}
+                      {app.status === 'REJECTED' && (
                         <button 
                           onClick={() => reviewApplication(app.id, "PENDING")} 
                           className="btn btn-outline btn-sm"

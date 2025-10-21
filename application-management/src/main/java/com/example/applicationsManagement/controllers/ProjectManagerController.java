@@ -49,6 +49,19 @@ public class ProjectManagerController {
     }
 
     /**
+     * EN: Finalize application after interview (ACCEPTED or REJECTED)
+     * FR: Finaliser la candidature après l'entretien (ACCEPTÉ ou REJETÉ)
+     */
+    @PutMapping("/interviews/{interviewId}/finalize")
+    public ResponseEntity<?> finalizeApplication(
+            @PathVariable Long interviewId, 
+            @RequestParam String decision,
+            @RequestParam(required = false) String comment) {
+        pmService.finalizeApplication(interviewId, decision, comment != null ? comment : "");
+        return ResponseEntity.ok("Application finalized successfully");
+    }
+
+    /**
      * EN: Update PM profile (email cannot be changed - company email)
      * FR: Mettre à jour le profil PM (l'email ne peut pas être modifié - email de l'entreprise)
      */

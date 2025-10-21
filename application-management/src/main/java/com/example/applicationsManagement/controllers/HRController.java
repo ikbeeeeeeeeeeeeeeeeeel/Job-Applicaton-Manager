@@ -84,9 +84,10 @@ public class HRController {
     @PostMapping(value = "/interview/create", consumes = {"application/json", "application/json;charset=UTF-8"})
     public Interview createInterview(@RequestBody Interview interview,
                                      @RequestParam Long candidateId,
-                                     @RequestParam Long projectManagerId){
+                                     @RequestParam Long projectManagerId,
+                                     @RequestParam Long applicationId){
         System.out.println("📥 Received Interview: " + interview);
-        return hrService.createInterview(interview, candidateId, projectManagerId);
+        return hrService.createInterview(interview, candidateId, projectManagerId, applicationId);
     }
 
     /**

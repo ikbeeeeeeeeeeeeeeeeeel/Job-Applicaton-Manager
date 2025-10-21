@@ -10,5 +10,6 @@ public interface ProjectManagerService {
     ProjectManager createPm(ProjectManager pm);
     List<Interview> listMeetings(Long pmId);
     void evaluateInterview(Long interviewId, String comment);
+    void finalizeApplication(Long interviewId, String decision, String comment);
     ProjectManager updateProfile(Long id, java.util.Map<String, Object> updates);
 }

@@ -72,13 +72,14 @@ export default function MyApplications() {
 
   /**
    * Get the appropriate badge class based on application status
-   * @param {string} status - Application status (ACCEPTED, REJECTED, PENDING)
+   * @param {string} status - Application status (ACCEPTED, REJECTED, PENDING, INTERVIEW_SCHEDULED)
    * @returns {string} CSS class name for badge styling
    */
   const getStatusBadge = (status) => {
     const statusLower = status?.toLowerCase()
     if (statusLower === 'accepted') return 'badge-success'  // Green
     if (statusLower === 'rejected') return 'badge-danger'   // Red
+    if (statusLower === 'interview_scheduled') return 'badge-info'  // Blue
     return 'badge-warning'  // Yellow for PENDING
   }
 

@@ -1,7 +1,9 @@
 package com.example.applicationsManagement.services;
 
+import com.example.applicationsManagement.entities.Application;
 import com.example.applicationsManagement.entities.Interview;
 import com.example.applicationsManagement.entities.ProjectManager;
+import com.example.applicationsManagement.repositories.ApplicationRepository;
 import com.example.applicationsManagement.repositories.InterviewRepository;
 import com.example.applicationsManagement.repositories.ProjectManagerRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ public class ProjectManagerServiceImpl implements ProjectManagerService {
 
     private final InterviewRepository interviewRepository;
     private final ProjectManagerRepository projectManagerRepository;
+    private final ApplicationRepository applicationRepository;
 
     @Override
     public List<ProjectManager> getAllProjectManagers() {
@@ -39,6 +42,27 @@ public class ProjectManagerServiceImpl implements ProjectManagerService {
         interview.setResult(comment);
         // Save comment in DB if needed
         interviewRepository.save(interview);
+    }
+
+    @Override
+    public void finalizeApplication(Long interviewId, String decision, String comment) {
+        Interview interview = interviewRepository.findById(interviewId)
+                .orElseThrow(() -> new RuntimeException("Interview not found"));
+        
+        // Update interview status and result
+        interview.setStatus("Completed");
+        interview.setResult(decision); // ACCEPTED or REJECTED
+        interviewRepository.save(interview);
+        
+        // Update application status based on PM decision
+        if (interview.getApplication() != null) {
+            Application application = interview.getApplication();
+            application.setStatus(decision); // ACCEPTED or REJECTED
+            application.setAiScoreExplanation(
+                application.getAiScoreExplanation() + "\n\n📝 PM Feedback: " + comment
+            );
+            applicationRepository.save(application); // 🔥 IMPORTANT: Save the application!
+        }
     }
 
     @Override

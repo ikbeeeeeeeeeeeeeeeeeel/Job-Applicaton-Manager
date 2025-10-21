@@ -224,15 +224,18 @@ export default function InterviewsManagement() {
                   <div className="flex gap-2">
                     <span className={`badge ${
                       iv.status === 'Completed' ? 'badge-success' : 
-                      iv.status === 'Cancelled' ? 'badge-danger' : 'badge-info'
+                      iv.status === 'Cancelled' ? 'badge-danger' : 
+                      iv.status === 'Absent' ? 'badge-warning' : 'badge-info'
                     }`}>
-                      {iv.status || "Planned"}
+                      {iv.status === 'Absent' ? 'Absent' : iv.status || "Planned"}
                     </span>
                     <span className={`badge ${
-                      iv.result === 'Accepted' ? 'badge-success' : 
-                      iv.result === 'Rejected' ? 'badge-danger' : 'badge-warning'
+                      iv.result === 'ACCEPTED' ? 'badge-success' : 
+                      iv.result === 'REJECTED' ? 'badge-danger' : 'badge-warning'
                     }`}>
-                      {iv.result || "Pending"}
+                      {iv.result === 'ACCEPTED' ? '✅ Accepted' : 
+                       iv.result === 'REJECTED' ? '❌ Rejected' : 
+                       '⏳ Pending'}
                     </span>
                   </div>
                 </div>
@@ -376,6 +379,7 @@ export default function InterviewsManagement() {
                     <option value="Planned">Planned</option>
                     <option value="Completed">Completed</option>
                     <option value="Cancelled">Cancelled</option>
+                    <option value="Absent">Absent</option>
                   </select>
                 </div>
                 <div className="form-group">
@@ -385,9 +389,9 @@ export default function InterviewsManagement() {
                     value={editingInterview.result || ""}
                     onChange={(e) => setEditingInterview({ ...editingInterview, result: e.target.value })}
                   >
-                    <option value="Pending">Pending</option>
-                    <option value="Accepted">Accepted</option>
-                    <option value="Rejected">Rejected</option>
+                    <option value="">Pending</option>
+                    <option value="ACCEPTED">Accepted</option>
+                    <option value="REJECTED">Rejected</option>
                   </select>
                 </div>
               </div>

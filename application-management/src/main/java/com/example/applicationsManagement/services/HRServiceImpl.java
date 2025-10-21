@@ -92,16 +92,24 @@ public class HRServiceImpl implements HRService{
         return interviewRepository.save(interview);
     }
     @Override
-    public Interview createInterview(Interview interview, Long candidateId, Long projectManagerId) {
+    public Interview createInterview(Interview interview, Long candidateId, Long projectManagerId, Long applicationId) {
         System.out.println("Received Interview: " + interview);
         Candidate candidate = candidateRepository.findById(candidateId)
                 .orElseThrow(() -> new RuntimeException("Candidate not found"));
 
         ProjectManager pm = projectManagerRepository.findById(projectManagerId)
                 .orElseThrow(() -> new RuntimeException("PM not found"));
+        
+        // Find and update application status to INTERVIEW_SCHEDULED
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new RuntimeException("Application not found"));
+        application.setStatus("INTERVIEW_SCHEDULED");
+        applicationRepository.save(application);
+        
         interview.setStatus("Planned");
         interview.setCandidate(candidate);
         interview.setRecruiter(pm);
+        interview.setApplication(application);
         return interviewRepository.save(interview);
     }
     @Override

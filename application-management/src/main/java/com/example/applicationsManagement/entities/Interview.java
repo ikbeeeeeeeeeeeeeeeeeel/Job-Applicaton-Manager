@@ -36,4 +36,9 @@ public class Interview implements Serializable {
     @ManyToOne
     @JsonIgnoreProperties({"interviews", "password", "resume", "coverLetter"}) // prevent infinite loop + hide sensitive fields
     private Candidate candidate;
+
+    @ManyToOne
+    @JoinColumn(name = "application_id")
+    @JsonIgnoreProperties({"candidate", "jobOffer"}) // prevent infinite loop
+    private Application application;
 }
