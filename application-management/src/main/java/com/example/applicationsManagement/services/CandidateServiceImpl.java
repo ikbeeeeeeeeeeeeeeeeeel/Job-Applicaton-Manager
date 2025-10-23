@@ -21,6 +21,7 @@ public class CandidateServiceImpl implements CandidateService{
     private final CandidateRepository candidateRepository;
     private final JobOfferRepository jobOfferRepository;
     private final ApplicationRepository applicationRepository;
+    private final AIScoringService aiScoringService;
 
     @Override
     public List<Candidate> getAllCandidates() {
@@ -111,8 +112,18 @@ public class CandidateServiceImpl implements CandidateService{
         application.setResume(applicationResume);  // Set the resume for this specific application
         application.setCoverLetter(coverLetter);  // Optional cover letter
 
-        application.setScore(0.0); // you can update this with actual logic
-        application.setAiScoreExplanation("Initial score");
+        // 🤖 AI SCORING - Calculate intelligent match score
+        System.out.println("\n🤖 Calling AI Scoring Engine...");
+        java.util.Map<String, Object> aiResult = aiScoringService.calculateScore(application, candidate, jobOffer);
+        
+        Double aiScore = (Double) aiResult.get("score");
+        String aiExplanation = (String) aiResult.get("explanation");
+        
+        application.setScore(aiScore);
+        application.setAiScoreExplanation(aiExplanation);
+        
+        System.out.println("✅ AI Score: " + aiScore + "%");
+        System.out.println("💡 Explanation: " + aiExplanation);
 
         return applicationRepository.save(application);
     }
