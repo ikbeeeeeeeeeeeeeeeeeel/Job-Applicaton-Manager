@@ -169,6 +169,34 @@ export default function ApplicationsManagement() {
   }
 
   /**
+   * View document in new tab
+   */
+  const viewDocument = (documentBase64) => {
+    if (!documentBase64) {
+      alert('⚠️ Document not available')
+      return
+    }
+    window.open(documentBase64, '_blank')
+  }
+
+  /**
+   * Download document
+   */
+  const downloadDocument = (documentBase64, filename) => {
+    if (!documentBase64) {
+      alert('⚠️ Document not available')
+      return
+    }
+    
+    const link = document.createElement('a')
+    link.href = documentBase64
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  /**
    * Create an interview for the selected candidate
    */
   const planInterview = async (e) => {
@@ -495,7 +523,7 @@ export default function ApplicationsManagement() {
                     )}
 
                     {/* AI Explanation */}
-                    {app.aiScoreExplanation && (
+                    {app.aiScoreExplanation && app.aiScoreExplanation !== 'Initial score' && (
                       <div style={{ 
                         fontSize: 'var(--font-size-sm)', 
                         padding: 'var(--spacing-md)', 
@@ -508,6 +536,20 @@ export default function ApplicationsManagement() {
                       </div>
                     )}
 
+                    {/* PM Feedback */}
+                    {app.pmFeedback && (
+                      <div style={{ 
+                        fontSize: 'var(--font-size-sm)', 
+                        padding: 'var(--spacing-md)', 
+                        background: 'var(--secondary-light)', 
+                        borderRadius: 'var(--radius-md)',
+                        borderLeft: '3px solid var(--secondary)',
+                        marginBottom: 'var(--spacing-md)'
+                      }}>
+                        <strong>📝 PM Feedback:</strong> {app.pmFeedback}
+                      </div>
+                    )}
+
                     {/* Candidate Info */}
                     {app.candidate && (
                       <div style={{ 
@@ -517,16 +559,88 @@ export default function ApplicationsManagement() {
                         marginBottom: 'var(--spacing-md)',
                         fontSize: 'var(--font-size-sm)'
                       }}>
-                        <div className="grid grid-cols-2" style={{ gap: 'var(--spacing-sm)' }}>
+                        <div style={{ gap: 'var(--spacing-sm)' }}>
                           <div>
                             <strong>📱 Phone:</strong> {app.candidate.phone || 'N/A'}
-                          </div>
-                          <div>
-                            <strong>🎓 Education:</strong> {app.candidate.education || 'N/A'}
                           </div>
                         </div>
                       </div>
                     )}
+
+                    {/* Documents Section */}
+                    <div style={{ 
+                      padding: 'var(--spacing-md)', 
+                      background: 'var(--info-light)', 
+                      borderRadius: 'var(--radius-md)',
+                      marginBottom: 'var(--spacing-md)',
+                      border: '1px solid var(--info)'
+                    }}>
+                      <h5 style={{ fontSize: 'var(--font-size-base)', fontWeight: 600, marginBottom: 'var(--spacing-sm)' }}>
+                        📄 Application Documents
+                      </h5>
+                      
+                      {/* Resume */}
+                      <div style={{ marginBottom: 'var(--spacing-sm)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>
+                            📋 Resume:
+                          </span>
+                          {app.resume ? (
+                            <div className="flex gap-1">
+                              <button 
+                                onClick={() => viewDocument(app.resume)} 
+                                className="btn btn-secondary btn-sm"
+                                style={{ fontSize: 'var(--font-size-xs)' }}
+                              >
+                                👁️ View
+                              </button>
+                              <button 
+                                onClick={() => downloadDocument(app.resume, `resume_${app.candidate?.firstname}_${app.candidate?.lastname}`)} 
+                                className="btn btn-outline btn-sm"
+                                style={{ fontSize: 'var(--font-size-xs)' }}
+                              >
+                                ⬇️ Download
+                              </button>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--gray-500)' }}>
+                              Not provided
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Cover Letter */}
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>
+                            💌 Cover Letter:
+                          </span>
+                          {app.coverLetter ? (
+                            <div className="flex gap-1">
+                              <button 
+                                onClick={() => viewDocument(app.coverLetter)} 
+                                className="btn btn-secondary btn-sm"
+                                style={{ fontSize: 'var(--font-size-xs)' }}
+                              >
+                                👁️ View
+                              </button>
+                              <button 
+                                onClick={() => downloadDocument(app.coverLetter, `cover_letter_${app.candidate?.firstname}_${app.candidate?.lastname}`)} 
+                                className="btn btn-outline btn-sm"
+                                style={{ fontSize: 'var(--font-size-xs)' }}
+                              >
+                                ⬇️ Download
+                              </button>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--gray-500)' }}>
+                              Not provided
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Action Buttons */}
                     <div className="flex gap-2">

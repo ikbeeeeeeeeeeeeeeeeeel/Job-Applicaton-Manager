@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.io.Serializable;
 import java.util.List;
 
 @Getter
@@ -15,11 +14,17 @@ import java.util.List;
 @NoArgsConstructor
 @FieldDefaults(level= AccessLevel.PRIVATE)
 @Entity
-public class Candidate extends User implements Serializable{
+public class Candidate extends User {
     // firstname and lastname inherited from User class
     private Long phone;
-    private String resume;
-    private String coverLetter;
+    
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String resume;  // Stored as Base64 string (supports up to 4GB)
+    
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String coverLetter;  // Stored as Base64 string (supports up to 4GB)
 
     @OneToMany(mappedBy = "candidate", cascade = CascadeType.ALL)
     @OrderBy("submissionDate DESC")

@@ -6,7 +6,6 @@ import com.example.applicationsManagement.entities.Interview;
 import com.example.applicationsManagement.entities.JobOffer;
 import com.example.applicationsManagement.repositories.ApplicationRepository;
 import com.example.applicationsManagement.repositories.CandidateRepository;
-import com.example.applicationsManagement.repositories.InterviewRepository;
 import com.example.applicationsManagement.repositories.JobOfferRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -22,7 +21,6 @@ public class CandidateServiceImpl implements CandidateService{
     private final CandidateRepository candidateRepository;
     private final JobOfferRepository jobOfferRepository;
     private final ApplicationRepository applicationRepository;
-    private final InterviewRepository interviewRepository;
 
     @Override
     public List<Candidate> getAllCandidates() {
@@ -63,7 +61,7 @@ public class CandidateServiceImpl implements CandidateService{
     }
 
     @Override
-    public Application applyForJob(Long candidateId, Long jobOfferId) {
+    public Application applyForJob(Long candidateId, Long jobOfferId, String resume, String coverLetter) {
         // Validate inputs
         if (candidateId == null || jobOfferId == null) {
             throw new RuntimeException("Invalid candidate ID or job offer ID");
@@ -89,11 +87,29 @@ public class CandidateServiceImpl implements CandidateService{
             throw new RuntimeException("You have already applied to this job offer");
         }
 
+        // Log received data
+        System.out.println("=== Application Submission ===");
+        System.out.println("Resume received: " + (resume != null ? "Yes (" + resume.length() + " chars)" : "No"));
+        System.out.println("Cover letter received: " + (coverLetter != null ? "Yes (" + coverLetter.length() + " chars)" : "No"));
+        System.out.println("Candidate default resume: " + (candidate.getResume() != null ? "Yes" : "No"));
+        
+        // Use provided resume or fallback to candidate's default resume
+        String applicationResume = (resume != null && !resume.isEmpty()) ? resume : candidate.getResume();
+        
+        // Validate that we have a resume (either provided or from candidate profile)
+        if (applicationResume == null || applicationResume.isEmpty()) {
+            throw new RuntimeException("Resume is required. Please upload a resume or add one to your profile.");
+        }
+
+        System.out.println("Final resume to save: " + (applicationResume != null ? "Yes (" + applicationResume.length() + " chars)" : "No"));
+
         Application application = new Application();
         application.setCandidate(candidate);
         application.setJobOffer(jobOffer);
         application.setStatus("PENDING");
         application.setSubmissionDate(LocalDate.now());
+        application.setResume(applicationResume);  // Set the resume for this specific application
+        application.setCoverLetter(coverLetter);  // Optional cover letter
 
         application.setScore(0.0); // you can update this with actual logic
         application.setAiScoreExplanation("Initial score");

@@ -7,7 +7,6 @@ import lombok.experimental.FieldDefaults;
 
 import java.io.Serializable;
 import java.time.LocalDate;
-import java.util.Date;
 
 @Getter
 @Setter
@@ -24,6 +23,18 @@ public class Application implements Serializable {
     private String status;
     private Double score;
     private String aiScoreExplanation;
+    
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String resume;  // Resume specific to this application (Base64)
+    
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String coverLetter;  // Cover letter specific to this application (Base64)
+    
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String pmFeedback;  // Project Manager feedback after interview
 
     @ManyToOne
     @JsonIgnoreProperties({"applications", "interviews", "password"})  // Ignore circular refs and sensitive data

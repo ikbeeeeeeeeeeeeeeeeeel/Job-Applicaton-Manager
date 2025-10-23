@@ -55,7 +55,10 @@ public class CandidateController {
     public ResponseEntity<?> applyForJob(@RequestBody ApplicationDTO request) {
         try {
             Application application = candidateService.applyForJob(
-                    request.getCandidateId(), request.getJobOfferId());
+                    request.getCandidateId(), 
+                    request.getJobOfferId(),
+                    request.getResume(),
+                    request.getCoverLetter());
             return ResponseEntity.ok(application);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest()

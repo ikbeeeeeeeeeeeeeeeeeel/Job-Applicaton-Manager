@@ -58,9 +58,7 @@ public class ProjectManagerServiceImpl implements ProjectManagerService {
         if (interview.getApplication() != null) {
             Application application = interview.getApplication();
             application.setStatus(decision); // ACCEPTED or REJECTED
-            application.setAiScoreExplanation(
-                application.getAiScoreExplanation() + "\n\n📝 PM Feedback: " + comment
-            );
+            application.setPmFeedback(comment); // Store PM feedback in separate field
             applicationRepository.save(application); // 🔥 IMPORTANT: Save the application!
         }
     }

@@ -36,6 +36,16 @@ export default function JobOffers() {
   // Loading state during API calls
   const [loading, setLoading] = useState(false)
   
+  // Application modal state
+  const [showApplicationModal, setShowApplicationModal] = useState(false)
+  const [selectedJobId, setSelectedJobId] = useState(null)
+  const [useDefaultResume, setUseDefaultResume] = useState(true)
+  const [newResumeFile, setNewResumeFile] = useState(null)
+  const [coverLetterFile, setCoverLetterFile] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [candidateData, setCandidateData] = useState(null)
+  const [loadingCandidateData, setLoadingCandidateData] = useState(false)
+  
   // Get authenticated user from AuthContext
   const { user } = useAuth()
   const candidateId = user?.id  // Current user's ID for applying
@@ -79,33 +89,146 @@ export default function JobOffers() {
   }
 
   /**
-   * Apply to a job offer
-   * API: POST /api/candidates/apply
-   * @param {number} jobOfferId - ID of the job offer to apply to
+   * File conversion helper
    */
-  const applyToJob = async (jobOfferId) => {
+  const convertFileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = (error) => reject(error)
+    })
+  }
+
+  /**
+   * Fetch candidate complete data (including resume)
+   */
+  const fetchCandidateData = async () => {
+    setLoadingCandidateData(true)
     try {
+      const response = await fetch(`http://localhost:8089/api/candidates/${candidateId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setCandidateData(data)
+        console.log('Candidate data loaded:', { hasResume: !!data.resume, hasCoverLetter: !!data.coverLetter })
+      }
+    } catch (error) {
+      console.error('Failed to fetch candidate data:', error)
+    } finally {
+      setLoadingCandidateData(false)
+    }
+  }
+
+  /**
+   * Close application modal and reset state
+   */
+  const closeApplicationModal = () => {
+    setShowApplicationModal(false)
+    setSelectedJobId(null)
+    setUseDefaultResume(true)
+    setNewResumeFile(null)
+    setCoverLetterFile(null)
+    setCandidateData(null)
+  }
+
+  /**
+   * Open application modal
+   */
+  const openApplicationModal = async (jobOfferId) => {
+    setSelectedJobId(jobOfferId)
+    setShowApplicationModal(true)
+    setUseDefaultResume(true)
+    setNewResumeFile(null)
+    setCoverLetterFile(null)
+    // Fetch fresh candidate data to get resume
+    await fetchCandidateData()
+  }
+
+  /**
+   * Handle file selection
+   */
+  const handleFileChange = (e, type) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    const validResumeTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+    const validCoverLetterTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'text/plain']
+    
+    if (type === 'resume') {
+      if (!validResumeTypes.includes(file.type)) {
+        alert('⚠️ Resume must be PDF, Image (JPG/PNG), or Word document')
+        return
+      }
+      setNewResumeFile(file)
+      setUseDefaultResume(false)
+    } else if (type === 'coverLetter') {
+      if (!validCoverLetterTypes.includes(file.type)) {
+        alert('⚠️ Cover Letter must be PDF, Image (JPG/PNG), or Text file')
+        return
+      }
+      setCoverLetterFile(file)
+    }
+  }
+
+  /**
+   * Submit application with resume and cover letter
+   */
+  const submitApplication = async () => {
+    setSubmitting(true)
+    try {
+      // Prepare resume
+      let resumeData = null
+      if (useDefaultResume) {
+        // Use candidate's default resume from candidateData
+        resumeData = candidateData?.resume
+      } else if (newResumeFile) {
+        // Convert uploaded file to base64
+        resumeData = await convertFileToBase64(newResumeFile)
+      }
+
+      // Validate resume
+      if (!resumeData) {
+        alert('❌ Resume is required. Please select a resume.')
+        setSubmitting(false)
+        return
+      }
+
+      console.log('Submitting application with:', {
+        hasResume: !!resumeData,
+        resumeLength: resumeData?.length,
+        hasCoverLetter: !!coverLetterFile
+      })
+
+      // Prepare cover letter
+      let coverLetterData = null
+      if (coverLetterFile) {
+        coverLetterData = await convertFileToBase64(coverLetterFile)
+      }
+
       const response = await fetch('http://localhost:8089/api/candidates/apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ candidateId, jobOfferId })
+        body: JSON.stringify({ 
+          candidateId, 
+          jobOfferId: selectedJobId,
+          resume: resumeData,
+          coverLetter: coverLetterData
+        })
       })
 
       if (response.ok) {
         alert('✅ Application submitted successfully!')
-        // Refresh job offers to update the UI
+        closeApplicationModal()
         fetchOffers()
       } else {
-        try {
-          const errorData = await response.json()
-          alert('❌ Failed to apply: ' + (errorData.message || 'Unknown error'))
-        } catch {
-          alert('❌ Failed to apply. Server error: ' + response.status)
-        }
+        const errorData = await response.json()
+        alert('❌ Failed to apply: ' + (errorData.message || 'Unknown error'))
       }
     } catch (error) {
       console.error('Application failed:', error)
       alert('❌ Network error occurred while applying.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -197,7 +320,7 @@ export default function JobOffers() {
                   </div>
                 )}
 
-                <button onClick={() => applyToJob(offer.id)} className="btn btn-primary btn-sm">
+                <button onClick={() => openApplicationModal(offer.id)} className="btn btn-primary btn-sm">
                   📤 Apply Now
                 </button>
               </li>
@@ -205,6 +328,218 @@ export default function JobOffers() {
           </ul>
         )}
       </div>
+
+      {/* Application Modal */}
+      {showApplicationModal && (
+        <div className="modal-overlay" onClick={closeApplicationModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">📤 Submit Application</h3>
+              <button onClick={closeApplicationModal} className="modal-close">×</button>
+            </div>
+
+            <div className="modal-body">
+              {loadingCandidateData ? (
+                <div style={{ padding: 'var(--spacing-xl)', textAlign: 'center' }}>
+                  <div style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--spacing-md)' }}>⏳</div>
+                  <div style={{ color: 'var(--gray-600)' }}>Loading your profile data...</div>
+                </div>
+              ) : (
+                <>
+                  <p style={{ marginBottom: 'var(--spacing-lg)', color: 'var(--gray-600)' }}>
+                    Please provide your resume and optionally a cover letter for this application.
+                  </p>
+
+                  {/* Resume Section */}
+                  <div style={{ marginBottom: 'var(--spacing-lg)', padding: 'var(--spacing-md)', background: 'var(--gray-50)', borderRadius: 'var(--radius-md)' }}>
+                    <h4 style={{ fontSize: 'var(--font-size-base)', fontWeight: 600, marginBottom: 'var(--spacing-md)' }}>
+                      📄 Resume*
+                    </h4>
+
+                    {/* Display Default Resume */}
+                    {candidateData?.resume ? (
+                  <div style={{ marginBottom: 'var(--spacing-md)' }}>
+                    {useDefaultResume && !newResumeFile ? (
+                      <div style={{ 
+                        padding: 'var(--spacing-md)', 
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        borderRadius: 'var(--radius-md)',
+                        color: 'white',
+                        border: '2px solid #5568d3'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-sm)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+                            <span style={{ fontSize: 'var(--font-size-xl)' }}>✅</span>
+                            <div>
+                              <div style={{ fontWeight: 600, fontSize: 'var(--font-size-base)' }}>Default Resume Selected</div>
+                              <div style={{ fontSize: 'var(--font-size-xs)', opacity: 0.9 }}>From your profile</div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => window.open(candidateData.resume, '_blank')}
+                            className="btn btn-outline btn-sm"
+                            style={{ background: 'white', color: 'var(--primary)', border: 'none' }}
+                          >
+                            👁️ View
+                          </button>
+                        </div>
+                        <div style={{ fontSize: 'var(--font-size-xs)', opacity: 0.8 }}>
+                          📄 This is your default resume
+                        </div>
+                      </div>
+                    ) : null}
+                    
+                    {/* Option to select different resume */}
+                    <div style={{ marginTop: 'var(--spacing-md)' }}>
+                      <label style={{ fontSize: 'var(--font-size-sm)', color: 'var(--gray-600)', marginBottom: 'var(--spacing-xs)', display: 'block' }}>
+                        Or upload a different resume for this application:
+                      </label>
+                      <input
+                        type="file"
+                        id="resume-upload-modal"
+                        style={{ display: 'none' }}
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        onChange={(e) => handleFileChange(e, 'resume')}
+                      />
+                      <label 
+                        htmlFor="resume-upload-modal"
+                        className="form-input"
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between',
+                          cursor: 'pointer',
+                          backgroundColor: 'white',
+                          border: newResumeFile ? '2px solid var(--secondary)' : '1px solid var(--gray-300)'
+                        }}
+                      >
+                        <span style={{ color: newResumeFile ? 'var(--gray-700)' : 'var(--gray-400)' }}>
+                          {newResumeFile ? newResumeFile.name : 'Select a different resume...'}
+                        </span>
+                        <span className="btn btn-outline btn-sm" style={{ margin: 0 }}>
+                          📤 Choose File
+                        </span>
+                      </label>
+                      {newResumeFile && (
+                        <div style={{ marginTop: 'var(--spacing-xs)', padding: 'var(--spacing-sm)', background: 'var(--success-light)', borderRadius: 'var(--radius-md)', border: '1px solid var(--secondary)' }}>
+                          <div style={{ color: 'var(--secondary)', fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
+                            ✅ New resume selected: {newResumeFile.name}
+                          </div>
+                          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--gray-600)', marginTop: 'var(--spacing-xs)' }}>
+                            This resume will be used instead of your default resume
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ padding: 'var(--spacing-md)', background: 'var(--warning-light)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--spacing-md)', border: '1px solid var(--warning)' }}>
+                      <div style={{ color: 'var(--warning)', fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
+                        ⚠️ No default resume in your profile
+                      </div>
+                      <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--gray-600)', marginTop: 'var(--spacing-xs)' }}>
+                        Please upload a resume for this application
+                      </div>
+                    </div>
+                    <input
+                      type="file"
+                      id="resume-upload-modal"
+                      style={{ display: 'none' }}
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      onChange={(e) => handleFileChange(e, 'resume')}
+                    />
+                    <label 
+                      htmlFor="resume-upload-modal"
+                      className="form-input"
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        backgroundColor: 'white',
+                        border: newResumeFile ? '2px solid var(--secondary)' : '2px solid var(--danger)'
+                      }}
+                    >
+                      <span style={{ color: newResumeFile ? 'var(--gray-700)' : 'var(--gray-400)' }}>
+                        {newResumeFile ? newResumeFile.name : 'Select your resume...'}
+                      </span>
+                      <span className="btn btn-primary btn-sm" style={{ margin: 0 }}>
+                        📄 Upload your resume
+                      </span>
+                    </label>
+                    {newResumeFile && (
+                      <div style={{ marginTop: 'var(--spacing-xs)', color: 'var(--secondary)', fontSize: 'var(--font-size-sm)' }}>
+                        ✅ Resume selected: {newResumeFile.name}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Cover Letter Section */}
+              <div style={{ marginBottom: 'var(--spacing-lg)', padding: 'var(--spacing-md)', background: 'var(--gray-50)', borderRadius: 'var(--radius-md)' }}>
+                <h4 style={{ fontSize: 'var(--font-size-base)', fontWeight: 600, marginBottom: 'var(--spacing-md)' }}>
+                  💌 Cover Letter
+                </h4>
+
+                <input
+                  type="file"
+                  id="coverletter-upload-modal"
+                  style={{ display: 'none' }}
+                  accept=".pdf,.jpg,.jpeg,.png,.txt"
+                  onChange={(e) => handleFileChange(e, 'coverLetter')}
+                />
+                <label 
+                  htmlFor="coverletter-upload-modal"
+                  className="form-input"
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    backgroundColor: 'white'
+                  }}
+                >
+                  <span style={{ color: coverLetterFile ? 'var(--gray-700)' : 'var(--gray-400)' }}>
+                    {coverLetterFile ? coverLetterFile.name : 'Select your cover letter...'}
+                  </span>
+                  <span className="btn btn-outline btn-sm" style={{ margin: 0 }}>
+                    📄 Upload your cover letter
+                  </span>
+                </label>
+                {coverLetterFile && (
+                  <div style={{ marginTop: 'var(--spacing-xs)', color: 'var(--secondary)', fontSize: 'var(--font-size-sm)' }}>
+                    ✅ Cover letter selected: {coverLetterFile.name}
+                  </div>
+                )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {!loadingCandidateData && (
+              <div className="modal-footer">
+                <button 
+                  onClick={closeApplicationModal} 
+                  className="btn btn-outline"
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={submitApplication} 
+                  className="btn btn-primary"
+                  disabled={submitting || (!useDefaultResume && !newResumeFile) || (!candidateData?.resume && !newResumeFile)}
+                >
+                  {submitting ? 'Submitting...' : '📤 Submit Application'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

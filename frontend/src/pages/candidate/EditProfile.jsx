@@ -18,6 +18,8 @@ export default function EditProfile() {
     newPassword: "",
     confirmPassword: ""
   })
+  const [resumeFile, setResumeFile] = useState(null)
+  const [coverLetterFile, setCoverLetterFile] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -57,6 +59,54 @@ export default function EditProfile() {
     setError("")
   }
 
+  const handleFileChange = (e, type) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    // Validate file types
+    const validResumeTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+    const validCoverLetterTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'text/plain']
+    
+    if (type === 'resume') {
+      if (!validResumeTypes.includes(file.type)) {
+        setError('Resume must be PDF, Image (JPG/PNG), or Word document')
+        return
+      }
+      setResumeFile(file)
+    } else if (type === 'coverLetter') {
+      if (!validCoverLetterTypes.includes(file.type)) {
+        setError('Cover Letter must be PDF, Image (JPG/PNG), or Text file')
+        return
+      }
+      setCoverLetterFile(file)
+    }
+    setError('')
+  }
+
+  const convertFileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = (error) => reject(error)
+    })
+  }
+
+  const downloadFile = (base64Data, filename) => {
+    // Create a link element and trigger download
+    const link = document.createElement('a')
+    link.href = base64Data
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const viewFile = (base64Data) => {
+    // Open file in new tab
+    window.open(base64Data, '_blank')
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError("")
@@ -87,6 +137,17 @@ export default function EditProfile() {
         }
       }
 
+      // Convert files to Base64 if new files were uploaded
+      let resumeData = formData.resume || null
+      let coverLetterData = formData.coverLetter || null
+
+      if (resumeFile) {
+        resumeData = await convertFileToBase64(resumeFile)
+      }
+      if (coverLetterFile) {
+        coverLetterData = await convertFileToBase64(coverLetterFile)
+      }
+
       // Prepare data with proper types
       const profileData = {
         firstname: formData.firstname || null,
@@ -94,8 +155,8 @@ export default function EditProfile() {
         username: formData.username || null,
         email: formData.email || null,
         phone: formData.phone ? parseInt(formData.phone) : null,
-        resume: formData.resume || null,
-        coverLetter: formData.coverLetter || null
+        resume: resumeData,
+        coverLetter: coverLetterData
       }
 
       // Add password fields if changing password
@@ -302,32 +363,122 @@ export default function EditProfile() {
 
             <div className="form-group">
               <label className="form-label">Resume / CV</label>
-              <textarea
-                name="resume"
-                className="form-textarea"
-                placeholder="Paste your resume or CV content here..."
-                value={formData.resume}
-                onChange={handleChange}
-                rows="6"
+              <input
+                type="file"
+                id="resume-upload-edit"
+                style={{ display: 'none' }}
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                onChange={(e) => handleFileChange(e, 'resume')}
               />
-              <small style={{ fontSize: 'var(--font-size-xs)', color: 'var(--gray-500)' }}>
-                Include your work experience, education, skills, etc.
+              <label 
+                htmlFor="resume-upload-edit"
+                className="form-input"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  backgroundColor: 'white'
+                }}
+              >
+                <span style={{ color: resumeFile ? 'var(--gray-700)' : 'var(--gray-400)' }}>
+                  {resumeFile ? resumeFile.name : 'Select your new resume...'}
+                </span>
+                <span className="btn btn-outline btn-sm" style={{ margin: 0 }}>
+                  📄 Upload resume
+                </span>
+              </label>
+              <small style={{ fontSize: 'var(--font-size-xs)', color: 'var(--gray-500)', display: 'block', marginTop: 'var(--spacing-xs)' }}>
+                Upload: PDF, JPG, PNG, or Word document
               </small>
+              {resumeFile && (
+                <div style={{ marginTop: 'var(--spacing-xs)', color: 'var(--secondary)', fontSize: 'var(--font-size-sm)' }}>
+                  ✅ New resume selected: {resumeFile.name}
+                </div>
+              )}
+              {!resumeFile && formData.resume && (
+                <div style={{ marginTop: 'var(--spacing-sm)', padding: 'var(--spacing-sm)', background: 'var(--info-light)', borderRadius: 'var(--radius-md)', border: '1px solid var(--info)' }}>
+                  <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--info)', marginBottom: 'var(--spacing-xs)' }}>
+                    📄 <strong>Current resume on file</strong>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      type="button"
+                      onClick={() => viewFile(formData.resume)}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      👁️ View
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => downloadFile(formData.resume, `resume_${user.firstname}_${user.lastname}`)}
+                      className="btn btn-outline btn-sm"
+                    >
+                      ⬇️ Download
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="form-group">
               <label className="form-label">Cover Letter</label>
-              <textarea
-                name="coverLetter"
-                className="form-textarea"
-                placeholder="Write your cover letter here..."
-                value={formData.coverLetter}
-                onChange={handleChange}
-                rows="6"
+              <input
+                type="file"
+                id="coverletter-upload-edit"
+                style={{ display: 'none' }}
+                accept=".pdf,.jpg,.jpeg,.png,.txt"
+                onChange={(e) => handleFileChange(e, 'coverLetter')}
               />
-              <small style={{ fontSize: 'var(--font-size-xs)', color: 'var(--gray-500)' }}>
-                Introduce yourself and explain why you're a great candidate
+              <label 
+                htmlFor="coverletter-upload-edit"
+                className="form-input"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  backgroundColor: 'white'
+                }}
+              >
+                <span style={{ color: coverLetterFile ? 'var(--gray-700)' : 'var(--gray-400)' }}>
+                  {coverLetterFile ? coverLetterFile.name : 'Select your new cover letter...'}
+                </span>
+                <span className="btn btn-outline btn-sm" style={{ margin: 0 }}>
+                  📄 Upload cover letter
+                </span>
+              </label>
+              <small style={{ fontSize: 'var(--font-size-xs)', color: 'var(--gray-500)', display: 'block', marginTop: 'var(--spacing-xs)' }}>
+                Upload: PDF, JPG, PNG, or TXT file
               </small>
+              {coverLetterFile && (
+                <div style={{ marginTop: 'var(--spacing-xs)', color: 'var(--secondary)', fontSize: 'var(--font-size-sm)' }}>
+                  ✅ New cover letter selected: {coverLetterFile.name}
+                </div>
+              )}
+              {!coverLetterFile && formData.coverLetter && (
+                <div style={{ marginTop: 'var(--spacing-sm)', padding: 'var(--spacing-sm)', background: 'var(--info-light)', borderRadius: 'var(--radius-md)', border: '1px solid var(--info)' }}>
+                  <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--info)', marginBottom: 'var(--spacing-xs)' }}>
+                    📄 <strong>Current cover letter on file</strong>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      type="button"
+                      onClick={() => viewFile(formData.coverLetter)}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      👁️ View
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => downloadFile(formData.coverLetter, `cover_letter_${user.firstname}_${user.lastname}`)}
+                      className="btn btn-outline btn-sm"
+                    >
+                      ⬇️ Download
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

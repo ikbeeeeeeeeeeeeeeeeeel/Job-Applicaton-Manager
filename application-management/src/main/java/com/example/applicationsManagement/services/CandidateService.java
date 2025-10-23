@@ -13,7 +13,7 @@ public interface CandidateService {
     Candidate createCandidate(Candidate candidate);
     Candidate updateProfile(Long id, java.util.Map<String, Object> updates);
     List<JobOffer> searchJobs(String keyword);
-    Application applyForJob(Long candidateId, Long jobOfferId);
+    Application applyForJob(Long candidateId, Long jobOfferId, String resume, String coverLetter);
     List<Application> getApplicationsByCandidate(Long candidateId);
     List<Interview> listInterviews(Long candidateId);
 }

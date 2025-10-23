@@ -21,16 +21,16 @@ export default function ProjectManagerDashboard() {
 
   useEffect(() => {
     fetchInterviews();
-  }, []);
+  }, [])
 
   // Mark candidate as absent (Absent)
-  const markAsNoShow = async (id) => {
+  async function markAsNoShow(id) {
     if (!window.confirm("Mark this candidate as absent")) return;
-    
+
     try {
       const response = await fetch(
         `http://localhost:8089/api/hr/interview/update/${id}`,
-        { 
+        {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -51,7 +51,7 @@ export default function ProjectManagerDashboard() {
       console.error("Error marking as no show:", error);
       alert("Error occurred while updating.");
     }
-  };
+  }
 
   // Finalize application after interview
   const finalizeApplication = async (id, decision) => {
