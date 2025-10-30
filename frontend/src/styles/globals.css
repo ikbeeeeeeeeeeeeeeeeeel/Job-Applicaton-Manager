@@ -111,10 +111,28 @@ p {
   box-sizing: border-box;
 }
 
+/* Form Container - Centered forms (Login, Register, etc.) */
+.form-container {
+  max-width: 600px;
+  width: 100%;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  margin-top: var(--spacing-2xl);
+  margin-bottom: var(--spacing-2xl);
+  padding: 0 var(--spacing-md);
+  box-sizing: border-box;
+  display: block;
+}
+
 @media (max-width: 768px) {
   .container {
     width: 100%;
     padding: 0 var(--spacing-md);
+  }
+  
+  .form-container {
+    width: 95%;
+    margin: var(--spacing-lg) auto;
   }
 }
 

@@ -114,7 +114,7 @@ export default function Register() {
   }
 
   return (
-    <div className="container" style={{ maxWidth: '600px', marginTop: 'var(--spacing-2xl)' }}>
+    <div className="form-container">
       <div className="card" style={{ boxShadow: 'var(--shadow-lg)', padding: 'var(--spacing-2xl)' }}>
         <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-xl)' }}>
           <div style={{ fontSize: '3rem', marginBottom: 'var(--spacing-md)' }}>📝</div>
