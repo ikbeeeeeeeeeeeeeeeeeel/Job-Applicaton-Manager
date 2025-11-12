@@ -3,6 +3,7 @@ package com.example.applicationsManagement.controllers;
 import com.example.applicationsManagement.dto.CreateUserRequest;
 import com.example.applicationsManagement.dto.UserDTO;
 import com.example.applicationsManagement.services.AdminService;
+import com.example.applicationsManagement.services.MLTrainingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +31,7 @@ import java.util.Map;
 public class AdminController {
 
     private final AdminService adminService;
+    private final MLTrainingService mlTrainingService;
 
     /**
      * Create new HR user
@@ -158,6 +160,73 @@ public class AdminController {
     public ResponseEntity<Map<String, Object>> getSystemStatistics() {
         Map<String, Object> stats = adminService.getSystemStatistics();
         return ResponseEntity.ok(stats);
+    }
+
+    // ========================================
+    // ML MODEL MANAGEMENT ENDPOINTS
+    // ========================================
+
+    /**
+     * Train ML model with synthetic data
+     * POST /api/admin/ml/train
+     */
+    @PostMapping("/ml/train")
+    public ResponseEntity<?> trainMLModel(@RequestBody(required = false) Map<String, Object> request) {
+        try {
+            int trainingSize = 100; // Default
+            double testSize = 0.2;  // Default 20% for testing
+            
+            if (request != null) {
+                if (request.containsKey("training_size")) {
+                    trainingSize = (int) request.get("training_size");
+                }
+                if (request.containsKey("test_size")) {
+                    testSize = ((Number) request.get("test_size")).doubleValue();
+                }
+            }
+            
+            Map<String, Object> result = mlTrainingService.trainModel(trainingSize, testSize);
+            
+            if (Boolean.TRUE.equals(result.get("success"))) {
+                return ResponseEntity.ok(result);
+            } else {
+                return ResponseEntity
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(result);
+            }
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Failed to train ML model: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get ML model information
+     * GET /api/admin/ml/info
+     */
+    @GetMapping("/ml/info")
+    public ResponseEntity<Map<String, Object>> getMLModelInfo() {
+        Map<String, Object> info = mlTrainingService.getModelInfo();
+        return ResponseEntity.ok(info);
+    }
+
+    /**
+     * Check ML service status
+     * GET /api/admin/ml/status
+     */
+    @GetMapping("/ml/status")
+    public ResponseEntity<Map<String, Object>> getMLServiceStatus() {
+        Map<String, Object> status = new HashMap<>();
+        boolean available = mlTrainingService.isMLServiceAvailable();
+        
+        status.put("ml_service_available", available);
+        status.put("status", available ? "online" : "offline");
+        status.put("message", available ? 
+            "ML Service is running on port 5001" : 
+            "ML Service is not reachable - please start it with 'python ml_app.py'");
+        
+        return ResponseEntity.ok(status);
     }
 
     // Helper methods

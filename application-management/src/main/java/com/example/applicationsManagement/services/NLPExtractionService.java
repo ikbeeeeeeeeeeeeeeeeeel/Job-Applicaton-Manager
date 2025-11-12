@@ -54,7 +54,7 @@ public class NLPExtractionService {
             }
         } catch (Exception e) {
             pythonServiceAvailable = false;
-            System.out.println("⚠️ Python NLP service is offline - will use Phase 1 fallback");
+            System.out.println("⚠️ Python NLP service is offline");
         }
     }
     

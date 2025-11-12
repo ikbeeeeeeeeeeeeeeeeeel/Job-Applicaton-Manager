@@ -152,6 +152,13 @@ function AdminDashboard() {
             onClick={() => navigate('/admin/users')}
             buttonText="Manage"
           />
+          <ActionCard
+            icon="🤖"
+            title="ML Model Management"
+            description="Train and monitor the Machine Learning model"
+            onClick={() => navigate('/admin/ml-model')}
+            buttonText="Manage ML"
+          />
         </div>
 
         {/* Info Panel */}

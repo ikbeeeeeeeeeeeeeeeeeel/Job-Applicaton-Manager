@@ -4,7 +4,6 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import JobOffers from './pages/candidate/JobOffers'
-import CandidateDashboard from './pages/candidate/CandidateDashboard'
 import HRDashboard from './pages/HR/HRDashboard'
 import MyApplications from './pages/candidate/MyApplications'
 import CandidateInterviews from './pages/candidate/CandidateInterviews'
@@ -15,6 +14,7 @@ import PMEditProfile from './pages/pm/EditProfile'
 import AdminDashboard from './pages/AdminDashboard'
 import CreateUser from './pages/admin/CreateUser'
 import UserManagement from './pages/admin/UserManagement'
+import MLModelManagement from './pages/admin/MLModelManagement'
 
 /**
  * ProtectedRoute Component
@@ -238,11 +238,6 @@ function App() {
               <EditProfile />
             </ProtectedRoute>
           } />
-          <Route path="/candidate/*" element={
-            <ProtectedRoute allowedRoles={['CANDIDATE']}>
-              <CandidateDashboard />
-            </ProtectedRoute>
-          } />
           
           {/* HR Routes */}
           <Route path="/hr" element={
@@ -287,6 +282,11 @@ function App() {
           <Route path="/admin/users" element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
               <UserManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/ml-model" element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <MLModelManagement />
             </ProtectedRoute>
           } />
         </Routes>
