@@ -8,6 +8,7 @@ import com.example.applicationsManagement.entities.HR;
 import com.example.applicationsManagement.entities.ProjectManager;
 import com.example.applicationsManagement.repositories.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -31,6 +32,7 @@ public class AdminServiceImpl implements AdminService {
     private final CandidateRepository candidateRepository;
     private final JobOfferRepository jobOfferRepository;
     private final ApplicationRepository applicationRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public Admin getAdminById(Long id) {
@@ -52,7 +54,7 @@ public class AdminServiceImpl implements AdminService {
         HR hr = new HR();
         hr.setUsername(request.getUsername());
         hr.setEmail(request.getEmail());
-        hr.setPassword(request.getPassword());  // TODO: Hash password with BCrypt
+        hr.setPassword(passwordEncoder.encode(request.getPassword()));  // Hash password with BCrypt
         hr.setFirstname(request.getFirstname());
         hr.setLastname(request.getLastname());
         hr.setDepartement(request.getDepartment());
@@ -80,7 +82,7 @@ public class AdminServiceImpl implements AdminService {
         ProjectManager pm = new ProjectManager();
         pm.setUsername(request.getUsername());
         pm.setEmail(request.getEmail());
-        pm.setPassword(request.getPassword());  // TODO: Hash password with BCrypt
+        pm.setPassword(passwordEncoder.encode(request.getPassword()));  // Hash password with BCrypt
         pm.setFirstname(request.getFirstname());
         pm.setLastname(request.getLastname());
         pm.setDepartement(request.getDepartment());
@@ -163,26 +165,28 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public void resetPassword(Long userId, String role, String newPassword) {
-        // TODO: Hash password with BCrypt before saving
+        // Hash password with BCrypt before saving
+        String hashedPassword = passwordEncoder.encode(newPassword);
+        
         switch (role.toUpperCase()) {
             case "HR":
                 HR hr = hrRepository.findById(userId)
                         .orElseThrow(() -> new RuntimeException("HR user not found"));
-                hr.setPassword(newPassword);
+                hr.setPassword(hashedPassword);
                 hrRepository.save(hr);
                 break;
                 
             case "PM":
                 ProjectManager pm = projectManagerRepository.findById(userId)
                         .orElseThrow(() -> new RuntimeException("PM user not found"));
-                pm.setPassword(newPassword);
+                pm.setPassword(hashedPassword);
                 projectManagerRepository.save(pm);
                 break;
                 
             case "CANDIDATE":
                 Candidate candidate = candidateRepository.findById(userId)
                         .orElseThrow(() -> new RuntimeException("Candidate not found"));
-                candidate.setPassword(newPassword);
+                candidate.setPassword(hashedPassword);
                 candidateRepository.save(candidate);
                 break;
                 
