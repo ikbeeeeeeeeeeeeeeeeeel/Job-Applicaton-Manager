@@ -16,15 +16,14 @@ import { createContext, useContext, useState, useEffect } from 'react'
  * {
  *   id: number,           // User ID
  *   email: string,        // User email
- *   role: string,         // "CANDIDATE", "HR", "PM", or "ADMIN"
+ *   role: string,         // "CANDIDATE", "HR", or "PM"
  *   firstname: string,    // User's first name
- *   lastname: string,     // User's last name
- *   token: string         // JWT authentication token
+ *   lastname: string      // User's last name
  * }
  * 
  * Usage:
  * 1. Wrap your app with <AuthProvider>
- * 2. Use const { user, login, logout, isAuthenticated, hasRole, getAuthHeader } = useAuth()
+ * 2. Use const { user, login, logout, isAuthenticated, hasRole } = useAuth()
  */
 
 // Create the authentication context
@@ -65,20 +64,12 @@ export const AuthProvider = ({ children }) => {
    */
   useEffect(() => {
     const storedUser = localStorage.getItem('user')
-    const storedToken = localStorage.getItem('token')
-    
     if (storedUser) {
       try {
-        const parsedUser = JSON.parse(storedUser)
-        // Add token to user object if it exists separately
-        if (storedToken && !parsedUser.token) {
-          parsedUser.token = storedToken
-        }
-        setUser(parsedUser)
+        setUser(JSON.parse(storedUser))
       } catch (err) {
         console.error('Error parsing stored user:', err)
         localStorage.removeItem('user')
-        localStorage.removeItem('token')
       }
     }
     setLoading(false)
@@ -88,15 +79,11 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Login function - Sets user and persists to localStorage
-   * @param {Object} userData - User object containing id, email, role, firstname, lastname, token
+   * @param {Object} userData - User object containing id, email, role, firstname, lastname
    */
   const login = (userData) => {
     setUser(userData)
     localStorage.setItem('user', JSON.stringify(userData))
-    // Store token separately for easy access
-    if (userData.token) {
-      localStorage.setItem('token', userData.token)
-    }
   }
 
   /**
@@ -106,7 +93,6 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null)
     localStorage.removeItem('user')
-    localStorage.removeItem('token')
   }
 
   /**
@@ -119,28 +105,11 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Check if user has a specific role
-   * @param {string} role - Role to check ("CANDIDATE", "HR", "PM", "ADMIN")
+   * @param {string} role - Role to check ("CANDIDATE", "HR", "PM")
    * @returns {boolean} True if user has the specified role
    */
   const hasRole = (role) => {
     return user?.role === role
-  }
-
-  /**
-   * Get JWT token from user or localStorage
-   * @returns {string|null} JWT token or null if not authenticated
-   */
-  const getToken = () => {
-    return user?.token || localStorage.getItem('token')
-  }
-
-  /**
-   * Get authentication header for API requests
-   * @returns {Object} Headers object with Authorization bearer token
-   */
-  const getAuthHeader = () => {
-    const token = getToken()
-    return token ? { 'Authorization': `Bearer ${token}` } : {}
   }
 
   // Context value provided to all children
@@ -150,8 +119,6 @@ export const AuthProvider = ({ children }) => {
     logout,            // Logout function
     isAuthenticated,   // Check if authenticated
     hasRole,           // Check user role
-    getToken,          // Get JWT token
-    getAuthHeader,     // Get authorization header for API requests
     loading            // Loading state
   }
 

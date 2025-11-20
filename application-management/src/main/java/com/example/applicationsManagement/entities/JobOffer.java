@@ -24,11 +24,18 @@ public class JobOffer implements Serializable{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String title;
+    
+    @Lob
+    @Column(columnDefinition = "TEXT")
     private String description;
+    
     private String location;
     private String salary;
     private String contractType;
     private String status;
+    
+    @Lob
+    @Column(columnDefinition = "TEXT")
     private String skills;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd") // 👈 important

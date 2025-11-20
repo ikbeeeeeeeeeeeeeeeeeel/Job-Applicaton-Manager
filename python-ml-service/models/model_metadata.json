@@ -1,0 +1,18 @@
+{
+  "feature_names": [
+    "skills_match_ratio",
+    "skills_count",
+    "skills_overlap_count",
+    "experience_years",
+    "experience_match",
+    "experience_excess",
+    "education_count",
+    "has_education",
+    "cv_length",
+    "word_count",
+    "is_senior",
+    "is_junior"
+  ],
+  "trained_at": "20251119_220349",
+  "model_type": "RandomForestClassifier"
+}

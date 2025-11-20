@@ -16,4 +16,6 @@ public interface CandidateService {
     Application applyForJob(Long candidateId, Long jobOfferId, String resume, String coverLetter);
     List<Application> getApplicationsByCandidate(Long candidateId);
     List<Interview> listInterviews(Long candidateId);
+    Application updateApplication(Long applicationId, Long candidateId, String resume, String coverLetter);
+    void deleteApplication(Long applicationId, Long candidateId);
 }

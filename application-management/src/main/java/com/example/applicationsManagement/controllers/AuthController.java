@@ -18,14 +18,10 @@ import com.example.applicationsManagement.repositories.CandidateRepository;     
 import com.example.applicationsManagement.repositories.HRRepository;               // Access hr table
 import com.example.applicationsManagement.repositories.ProjectManagerRepository;   // Access project_manager table
 
-// Import security utilities
-import com.example.applicationsManagement.security.JwtUtil;  // JWT token generation and validation
-
 // Spring Framework imports for dependency injection and web functionality
 import org.springframework.beans.factory.annotation.Autowired;  // Automatic dependency injection
 import org.springframework.http.HttpStatus;                      // HTTP status codes (200, 401, 500, etc.)
 import org.springframework.http.ResponseEntity;                  // Wrapper for HTTP responses
-import org.springframework.security.crypto.password.PasswordEncoder;  // Password hashing
 import org.springframework.web.bind.annotation.*;                // REST controller annotations
 
 // Java utility imports
@@ -104,14 +100,6 @@ public class AuthController {
     // Repository for accessing admin table in database
     @Autowired
     private AdminRepository adminRepository;
-    
-    // JWT utility for token generation
-    @Autowired
-    private JwtUtil jwtUtil;
-    
-    // Password encoder for secure password comparison
-    @Autowired
-    private PasswordEncoder passwordEncoder;
 
     /**
      * ===== LOGIN METHOD =====
@@ -248,9 +236,11 @@ public class AuthController {
         Candidate candidate = candidateOpt.get();
 
         // ===== STEP 5: VERIFY PASSWORD =====
-        // Compare entered password with stored hashed password using BCrypt
-        // passwordEncoder.matches() securely compares plain text with hashed password
-        if (!passwordEncoder.matches(password, candidate.getPassword())) {
+        // Compare entered password with stored password
+        // ⚠️ SECURITY WARNING: This uses plain text comparison
+        // ⚠️ PRODUCTION: Use BCrypt password hashing
+        // Example: if (!encoder.matches(password, candidate.getPassword()))
+        if (!candidate.getPassword().equals(password)) {
             // Password doesn't match - return same error as "user not found"
             // Don't tell attacker if username was correct (security)
             return ResponseEntity
@@ -258,16 +248,8 @@ public class AuthController {
                 .body(createErrorResponse("Invalid email/username or password"));
         }
 
-        // ===== STEP 6: GENERATE JWT TOKEN =====
-        // Create a JWT token containing user info
-        String token = jwtUtil.generateToken(
-            candidate.getUsername(),
-            candidate.getRole(),
-            candidate.getId()
-        );
-        
-        // ===== STEP 7: CREATE SUCCESS RESPONSE =====
-        // Authentication successful! Build response with user data and token
+        // ===== STEP 6: CREATE SUCCESS RESPONSE =====
+        // Authentication successful! Build response with user data
         
         // LoginResponse is a DTO that contains user information
         // This will be converted to JSON and sent to frontend
@@ -278,7 +260,7 @@ public class AuthController {
             candidate.getRole(),        // "CANDIDATE" - from database
             candidate.getFirstname(),   // User's first name
             candidate.getLastname(),    // User's last name
-            token                       // JWT token for authentication
+            null                        // JWT token - not implemented yet (TODO)
         );
 
         // Return HTTP 200 OK with user data
@@ -309,20 +291,14 @@ public class AuthController {
 
         HR hr = hrOpt.get();
 
-        // Verify password using BCrypt
-        if (!passwordEncoder.matches(password, hr.getPassword())) {
+        // Verify password
+        // TODO: Use BCrypt in production
+        if (!hr.getPassword().equals(password)) {
             return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(createErrorResponse("Invalid email/username or password"));
         }
 
-        // Generate JWT token
-        String token = jwtUtil.generateToken(
-            hr.getUsername(),
-            hr.getRole(),
-            hr.getId()
-        );
-        
         // Create successful login response
         LoginResponse response = new LoginResponse(
             hr.getId(),
@@ -331,7 +307,7 @@ public class AuthController {
             hr.getRole(),  // Get role from User entity
             hr.getFirstname(),
             hr.getLastname(),
-            token  // JWT token
+            null  // TODO: Generate JWT token
         );
 
         return ResponseEntity.ok(response);
@@ -359,20 +335,14 @@ public class AuthController {
 
         ProjectManager pm = pmOpt.get();
 
-        // Verify password using BCrypt
-        if (!passwordEncoder.matches(password, pm.getPassword())) {
+        // Verify password
+        // TODO: Use BCrypt in production
+        if (!pm.getPassword().equals(password)) {
             return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(createErrorResponse("Invalid email/username or password"));
         }
 
-        // Generate JWT token
-        String token = jwtUtil.generateToken(
-            pm.getUsername(),
-            pm.getRole(),
-            pm.getId()
-        );
-        
         // Create successful login response
         LoginResponse response = new LoginResponse(
             pm.getId(),
@@ -381,7 +351,7 @@ public class AuthController {
             pm.getRole(),  // Get role from User entity
             pm.getFirstname(),
             pm.getLastname(),
-            token  // JWT token
+            null  // TODO: Generate JWT token
         );
 
         return ResponseEntity.ok(response);
@@ -415,20 +385,14 @@ public class AuthController {
 
         Admin admin = adminOpt.get();
 
-        // Verify password using BCrypt
-        if (!passwordEncoder.matches(password, admin.getPassword())) {
+        // Verify password
+        // TODO: Use BCrypt in production
+        if (!admin.getPassword().equals(password)) {
             return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(createErrorResponse("Invalid email/username or password"));
         }
 
-        // Generate JWT token
-        String token = jwtUtil.generateToken(
-            admin.getUsername(),
-            admin.getRole(),
-            admin.getId()
-        );
-        
         // Create successful login response
         LoginResponse response = new LoginResponse(
             admin.getId(),
@@ -437,7 +401,7 @@ public class AuthController {
             admin.getRole(),  // Get role from User entity (should be "ADMIN")
             admin.getFirstname(),
             admin.getLastname(),
-            token  // JWT token
+            null  // TODO: Generate JWT token
         );
 
         return ResponseEntity.ok(response);
@@ -517,9 +481,9 @@ public class AuthController {
                 Optional<Candidate> candidateOpt = candidateRepository.findById(userId);
                 if (candidateOpt.isPresent()) {
                     Candidate candidate = candidateOpt.get();
-                    if (passwordEncoder.matches(currentPassword, candidate.getPassword())) {
+                    if (candidate.getPassword().equals(currentPassword)) {
                         passwordVerified = true;
-                        candidate.setPassword(passwordEncoder.encode(newPassword));
+                        candidate.setPassword(newPassword);
                         candidateRepository.save(candidate);
                         passwordUpdated = true;
                     }
@@ -528,9 +492,9 @@ public class AuthController {
                 Optional<HR> hrOpt = hrRepository.findById(userId);
                 if (hrOpt.isPresent()) {
                     HR hr = hrOpt.get();
-                    if (passwordEncoder.matches(currentPassword, hr.getPassword())) {
+                    if (hr.getPassword().equals(currentPassword)) {
                         passwordVerified = true;
-                        hr.setPassword(passwordEncoder.encode(newPassword));
+                        hr.setPassword(newPassword);
                         hrRepository.save(hr);
                         passwordUpdated = true;
                     }
@@ -539,9 +503,9 @@ public class AuthController {
                 Optional<ProjectManager> pmOpt = projectManagerRepository.findById(userId);
                 if (pmOpt.isPresent()) {
                     ProjectManager pm = pmOpt.get();
-                    if (passwordEncoder.matches(currentPassword, pm.getPassword())) {
+                    if (pm.getPassword().equals(currentPassword)) {
                         passwordVerified = true;
-                        pm.setPassword(passwordEncoder.encode(newPassword));
+                        pm.setPassword(newPassword);
                         projectManagerRepository.save(pm);
                         passwordUpdated = true;
                     }
@@ -550,9 +514,9 @@ public class AuthController {
                 Optional<Admin> adminOpt = adminRepository.findById(userId);
                 if (adminOpt.isPresent()) {
                     Admin admin = adminOpt.get();
-                    if (passwordEncoder.matches(currentPassword, admin.getPassword())) {
+                    if (admin.getPassword().equals(currentPassword)) {
                         passwordVerified = true;
-                        admin.setPassword(passwordEncoder.encode(newPassword));
+                        admin.setPassword(newPassword);
                         adminRepository.save(admin);
                         passwordUpdated = true;
                     }

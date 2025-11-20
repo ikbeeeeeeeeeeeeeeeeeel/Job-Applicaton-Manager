@@ -191,4 +191,68 @@ public class CandidateServiceImpl implements CandidateService{
 
         return candidateRepository.save(existing);
     }
+
+    @Override
+    public Application updateApplication(Long applicationId, Long candidateId, String resume, String coverLetter) {
+        // Find the application
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new RuntimeException("Application not found with id: " + applicationId));
+        
+        // Verify that the application belongs to the candidate
+        if (!application.getCandidate().getId().equals(candidateId)) {
+            throw new RuntimeException("Unauthorized: This application does not belong to you");
+        }
+        
+        // Only allow editing if status is PENDING
+        if (!"PENDING".equalsIgnoreCase(application.getStatus())) {
+            throw new RuntimeException("Cannot edit application with status: " + application.getStatus() + ". Only PENDING applications can be edited.");
+        }
+        
+        // Update resume if provided
+        if (resume != null && !resume.isEmpty()) {
+            application.setResume(resume);
+        }
+        
+        // Update cover letter if provided
+        if (coverLetter != null) {
+            application.setCoverLetter(coverLetter);
+        }
+        
+        // Recalculate AI score with updated resume/cover letter
+        Candidate candidate = application.getCandidate();
+        JobOffer jobOffer = application.getJobOffer();
+        
+        System.out.println("\n🔄 Recalculating AI Score for updated application...");
+        java.util.Map<String, Object> aiResult = aiScoringService.calculateScore(application, candidate, jobOffer);
+        
+        Double aiScore = (Double) aiResult.get("score");
+        String aiExplanation = (String) aiResult.get("explanation");
+        
+        application.setScore(aiScore);
+        application.setAiScoreExplanation(aiExplanation);
+        
+        System.out.println("✅ Updated AI Score: " + aiScore + "%");
+        
+        return applicationRepository.save(application);
+    }
+
+    @Override
+    public void deleteApplication(Long applicationId, Long candidateId) {
+        // Find the application
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new RuntimeException("Application not found with id: " + applicationId));
+        
+        // Verify that the application belongs to the candidate
+        if (!application.getCandidate().getId().equals(candidateId)) {
+            throw new RuntimeException("Unauthorized: This application does not belong to you");
+        }
+        
+        // Only allow deletion if status is PENDING
+        if (!"PENDING".equalsIgnoreCase(application.getStatus())) {
+            throw new RuntimeException("Cannot delete application with status: " + application.getStatus() + ". Only PENDING applications can be deleted.");
+        }
+        
+        System.out.println("🗑️ Deleting application #" + applicationId + " for candidate #" + candidateId);
+        applicationRepository.delete(application);
+    }
 }

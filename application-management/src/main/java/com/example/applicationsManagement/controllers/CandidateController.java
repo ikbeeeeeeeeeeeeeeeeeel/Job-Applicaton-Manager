@@ -97,4 +97,44 @@ public class CandidateController {
             return ResponseEntity.badRequest().body(java.util.Collections.singletonMap("message", e.getMessage()));
         }
     }
+
+    /**
+     * EN: Update an application (resume and/or cover letter)
+     * FR: Mettre à jour une candidature (CV et/ou lettre de motivation)
+     */
+    @PutMapping("/{candidateId}/applications/{applicationId}")
+    public ResponseEntity<?> updateApplication(
+            @PathVariable Long candidateId,
+            @PathVariable Long applicationId,
+            @RequestBody ApplicationDTO request) {
+        try {
+            Application application = candidateService.updateApplication(
+                    applicationId,
+                    candidateId,
+                    request.getResume(),
+                    request.getCoverLetter()
+            );
+            return ResponseEntity.ok(application);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(java.util.Collections.singletonMap("message", e.getMessage()));
+        }
+    }
+
+    /**
+     * EN: Delete an application
+     * FR: Supprimer une candidature
+     */
+    @DeleteMapping("/{candidateId}/applications/{applicationId}")
+    public ResponseEntity<?> deleteApplication(
+            @PathVariable Long candidateId,
+            @PathVariable Long applicationId) {
+        try {
+            candidateService.deleteApplication(applicationId, candidateId);
+            return ResponseEntity.ok(java.util.Collections.singletonMap("message", "Application deleted successfully"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(java.util.Collections.singletonMap("message", e.getMessage()));
+        }
+    }
 }

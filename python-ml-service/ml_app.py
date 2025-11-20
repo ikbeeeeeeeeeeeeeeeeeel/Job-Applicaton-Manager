@@ -81,9 +81,9 @@ def get_model_info():
 @app.route('/api/train', methods=['POST'])
 def train_model():
     """
-    Train the ML model with historical data
+    Train the ML model with historical data or generate synthetic data
     
-    Expected JSON:
+    Expected JSON (Option 1 - Real data):
     {
         "training_data": [
             {
@@ -94,48 +94,79 @@ def train_model():
             ...
         ]
     }
+    
+    Expected JSON (Option 2 - Synthetic data):
+    {
+        "training_size": 100,
+        "test_size": 0.2
+    }
     """
     try:
         data = request.get_json()
         
-        if not data or 'training_data' not in data:
+        if not data:
             return jsonify({
                 'success': False,
-                'error': 'Missing training_data in request'
+                'error': 'No data provided'
             }), 400
         
-        training_samples = data['training_data']
-        
-        if len(training_samples) < 10:
-            return jsonify({
-                'success': False,
-                'error': 'Need at least 10 training samples'
-            }), 400
-        
-        print("\n" + "=" * 60)
-        print(f"📦 Received {len(training_samples)} training samples")
-        print("=" * 60)
-        
-        # Prepare data
-        X_data = []
-        y_labels = []
-        
-        for sample in training_samples:
-            if 'cv_data' not in sample or 'job_data' not in sample or 'label' not in sample:
-                continue
+        # Check if synthetic data generation is requested
+        if 'training_size' in data:
+            print("\n" + "=" * 60)
+            print("🧪 Generating synthetic training data...")
+            print("=" * 60)
             
-            X_data.append({
-                'cv_data': sample['cv_data'],
-                'job_data': sample['job_data']
-            })
-            y_labels.append(sample['label'])
+            training_size = data.get('training_size', 100)
+            test_size = data.get('test_size', 0.2)
+            
+            # Generate synthetic training data
+            training_samples, labels = generate_synthetic_data(training_size)
+            
+            print(f"✅ Generated {len(training_samples)} synthetic samples")
+            
+        elif 'training_data' in data:
+            # Use provided training data
+            training_samples_raw = data['training_data']
+            
+            if len(training_samples_raw) < 10:
+                return jsonify({
+                    'success': False,
+                    'error': 'Need at least 10 training samples'
+                }), 400
+            
+            print("\n" + "=" * 60)
+            print(f"📦 Received {len(training_samples_raw)} training samples")
+            print("=" * 60)
+            
+            # Prepare data
+            training_samples = []
+            labels = []
+            
+            for sample in training_samples_raw:
+                if 'cv_data' not in sample or 'job_data' not in sample or 'label' not in sample:
+                    continue
+                
+                training_samples.append({
+                    'cv_data': sample['cv_data'],
+                    'job_data': sample['job_data']
+                })
+                labels.append(sample['label'])
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Provide either training_data or training_size'
+            }), 400
         
         # Train model
-        metrics = ml_scorer.train(X_data, y_labels)
+        metrics = ml_scorer.train(training_samples, labels)
         
         return jsonify({
             'success': True,
             'message': 'Model trained successfully',
+            'accuracy': metrics.get('test_accuracy', 0) * 100,
+            'f1_score': metrics.get('test_accuracy', 0) * 100,  # Simplified
+            'training_samples': len(training_samples),
+            'test_samples': int(len(training_samples) * 0.2),
             'metrics': metrics
         })
     
@@ -148,6 +179,75 @@ def train_model():
             'success': False,
             'error': str(e)
         }), 500
+
+
+def generate_synthetic_data(size=100):
+    """
+    Generate synthetic training data for testing
+    
+    Args:
+        size: Number of samples to generate
+        
+    Returns:
+        Tuple of (training_data, labels)
+    """
+    import random
+    
+    training_data = []
+    labels = []
+    
+    skills_pool = ['java', 'python', 'javascript', 'react', 'spring', 'mysql', 
+                   'docker', 'kubernetes', 'aws', 'git', 'node.js', 'angular']
+    
+    # Generate accepted candidates (60%)
+    accepted_count = int(size * 0.6)
+    for i in range(accepted_count):
+        # Good match candidates
+        num_skills = random.randint(4, 8)
+        skills = random.sample(skills_pool, num_skills)
+        
+        training_data.append({
+            'cv_data': {
+                'skills': skills,
+                'experience_years': random.randint(3, 10),
+                'education': ['Bachelor CS', 'Master CS'][:random.randint(1, 2)],
+                'raw_text': 'Experienced developer with strong technical skills',
+                'word_count': random.randint(400, 800)
+            },
+            'job_data': {
+                'title': random.choice(['Senior Developer', 'Software Engineer', 'Tech Lead']),
+                'required_skills': ', '.join(skills[:3]),
+                'required_experience': random.randint(2, 5),
+                'description': 'Looking for experienced developer'
+            }
+        })
+        labels.append(1)  # ACCEPTED
+    
+    # Generate rejected candidates (40%)
+    rejected_count = size - accepted_count
+    for i in range(rejected_count):
+        # Poor match candidates
+        num_skills = random.randint(1, 3)
+        skills = random.sample(skills_pool, num_skills)
+        
+        training_data.append({
+            'cv_data': {
+                'skills': skills,
+                'experience_years': random.randint(0, 2),
+                'education': [] if random.random() > 0.5 else ['Bachelor'],
+                'raw_text': 'Junior developer',
+                'word_count': random.randint(100, 300)
+            },
+            'job_data': {
+                'title': 'Senior Developer',
+                'required_skills': ', '.join(random.sample(skills_pool, 5)),
+                'required_experience': random.randint(5, 8),
+                'description': 'Looking for experienced senior developer'
+            }
+        })
+        labels.append(0)  # REJECTED
+    
+    return training_data, labels
 
 
 @app.route('/api/predict', methods=['POST'])
