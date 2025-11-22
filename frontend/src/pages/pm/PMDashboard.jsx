@@ -1,18 +1,19 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { apiGet, apiPut } from "../../utils/api";
 
 export default function ProjectManagerDashboard() {
   const [interviews, setInterviews] = useState([]);
   const [evaluatingId, setEvaluatingId] = useState(null);
   const [comment, setComment] = useState("");
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
   const pmId = user?.id;
 
   // Fetch all interviews for this PM
   const fetchInterviews = async () => {
     try {
-      const response = await fetch(`http://localhost:8089/api/projectmanagers/${pmId}/interviews`);
-      const data = await response.json();
+      const token = getToken();
+      const data = await apiGet(`/projectmanagers/${pmId}/interviews`, token);
       setInterviews(data);
     } catch (error) {
       console.error("Failed to fetch interviews:", error);
@@ -28,25 +29,12 @@ export default function ProjectManagerDashboard() {
     if (!window.confirm("Mark this candidate as absent")) return;
 
     try {
-      const response = await fetch(
-        `http://localhost:8089/api/hr/interview/update/${id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            status: "Absent"
-          })
-        }
-      );
-
-      if (response.ok) {
-        alert("Interview marked as Absent candidate ⚠️");
-        setComment("");
-        setEvaluatingId(null);
-        fetchInterviews();
-      } else {
-        alert("Failed to update interview ❌");
-      }
+      const token = getToken();
+      await apiPut(`/hr/interview/update/${id}`, { status: "Absent" }, token);
+      alert("Interview marked as Absent candidate ⚠️");
+      setComment("");
+      setEvaluatingId(null);
+      fetchInterviews();
     } catch (error) {
       console.error("Error marking as no show:", error);
       alert("Error occurred while updating.");
@@ -60,20 +48,14 @@ export default function ProjectManagerDashboard() {
         decision: decision,
         comment: comment || "No additional comments"
       });
-
-      const response = await fetch(
-        `http://localhost:8089/api/projectmanagers/interviews/${id}/finalize?${params.toString()}`,
-        { method: "PUT" }
-      );
-
-      if (response.ok) {
-        alert(`Candidate ${decision.toLowerCase()} successfully! ✅`);
-        setComment("");
-        setEvaluatingId(null);
-        fetchInterviews();
-      } else {
-        alert(`Failed to ${decision.toLowerCase()} candidate ❌`);
-      }
+      
+      const token = getToken();
+      await apiPut(`/projectmanagers/interviews/${id}/finalize?${params.toString()}`, {}, token);
+      
+      alert(`Candidate ${decision.toLowerCase()} successfully! ✅`);
+      setComment("");
+      setEvaluatingId(null);
+      fetchInterviews();
     } catch (error) {
       console.error("Error finalizing application:", error);
       alert("Error occurred while finalizing.");

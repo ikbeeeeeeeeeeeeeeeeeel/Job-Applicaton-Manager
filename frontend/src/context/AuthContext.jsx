@@ -66,7 +66,14 @@ export const AuthProvider = ({ children }) => {
     const storedUser = localStorage.getItem('user')
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser))
+        const parsedUser = JSON.parse(storedUser)
+        // Check if token exists and is not expired
+        if (parsedUser.token) {
+          setUser(parsedUser)
+        } else {
+          // No token, clear storage
+          localStorage.removeItem('user')
+        }
       } catch (err) {
         console.error('Error parsing stored user:', err)
         localStorage.removeItem('user')
@@ -96,16 +103,24 @@ export const AuthProvider = ({ children }) => {
   }
 
   /**
+   * Get JWT token for API requests
+   * @returns {string|null} JWT token or null if not authenticated
+   */
+  const getToken = () => {
+    return user?.token || null
+  }
+
+  /**
    * Check if user is authenticated
    * @returns {boolean} True if user is logged in
    */
   const isAuthenticated = () => {
-    return user !== null
+    return user !== null && user.token !== null
   }
 
   /**
    * Check if user has a specific role
-   * @param {string} role - Role to check ("CANDIDATE", "HR", "PM")
+   * @param {string} role - Role to check ("CANDIDATE", "HR", "PM", "ADMIN")
    * @returns {boolean} True if user has the specified role
    */
   const hasRole = (role) => {
@@ -117,6 +132,7 @@ export const AuthProvider = ({ children }) => {
     user,              // Current user object or null
     login,             // Login function
     logout,            // Logout function
+    getToken,          // Get JWT token
     isAuthenticated,   // Check if authenticated
     hasRole,           // Check user role
     loading            // Loading state

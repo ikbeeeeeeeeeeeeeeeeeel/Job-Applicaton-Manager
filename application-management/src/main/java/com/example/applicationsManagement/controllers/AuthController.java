@@ -24,6 +24,9 @@ import org.springframework.http.HttpStatus;                      // HTTP status 
 import org.springframework.http.ResponseEntity;                  // Wrapper for HTTP responses
 import org.springframework.web.bind.annotation.*;                // REST controller annotations
 
+// Security imports
+import com.example.applicationsManagement.security.JwtUtil;     // JWT token utility
+
 // Java utility imports
 import java.util.HashMap;   // For creating key-value error messages
 import java.util.Map;       // Interface for key-value pairs
@@ -100,6 +103,10 @@ public class AuthController {
     // Repository for accessing admin table in database
     @Autowired
     private AdminRepository adminRepository;
+    
+    // JWT utility for generating tokens
+    @Autowired
+    private JwtUtil jwtUtil;
 
     /**
      * ===== LOGIN METHOD =====
@@ -248,7 +255,14 @@ public class AuthController {
                 .body(createErrorResponse("Invalid email/username or password"));
         }
 
-        // ===== STEP 6: CREATE SUCCESS RESPONSE =====
+        // ===== STEP 6: GENERATE JWT TOKEN =====
+        String token = jwtUtil.generateToken(
+            candidate.getUsername(),
+            candidate.getRole(),
+            candidate.getId()
+        );
+        
+        // ===== STEP 7: CREATE SUCCESS RESPONSE =====
         // Authentication successful! Build response with user data
         
         // LoginResponse is a DTO that contains user information
@@ -260,12 +274,12 @@ public class AuthController {
             candidate.getRole(),        // "CANDIDATE" - from database
             candidate.getFirstname(),   // User's first name
             candidate.getLastname(),    // User's last name
-            null                        // JWT token - not implemented yet (TODO)
+            token                       // JWT token for authentication
         );
 
         // Return HTTP 200 OK with user data
         // ResponseEntity.ok() is shorthand for status(HttpStatus.OK).body()
-        // Frontend will receive JSON like: {"id": 1, "email": "...", "role": "CANDIDATE", ...}
+        // Frontend will receive JSON like: {"id": 1, "email": "...", "role": "CANDIDATE", "token": "...", ...}
         return ResponseEntity.ok(response);
     }
 
@@ -299,15 +313,22 @@ public class AuthController {
                 .body(createErrorResponse("Invalid email/username or password"));
         }
 
+        // Generate JWT token
+        String token = jwtUtil.generateToken(
+            hr.getUsername(),
+            hr.getRole(),
+            hr.getId()
+        );
+        
         // Create successful login response
         LoginResponse response = new LoginResponse(
             hr.getId(),
             hr.getEmail(),
             hr.getUsername(),
-            hr.getRole(),  // Get role from User entity
+            hr.getRole(),
             hr.getFirstname(),
             hr.getLastname(),
-            null  // TODO: Generate JWT token
+            token
         );
 
         return ResponseEntity.ok(response);
@@ -343,15 +364,22 @@ public class AuthController {
                 .body(createErrorResponse("Invalid email/username or password"));
         }
 
+        // Generate JWT token
+        String token = jwtUtil.generateToken(
+            pm.getUsername(),
+            pm.getRole(),
+            pm.getId()
+        );
+        
         // Create successful login response
         LoginResponse response = new LoginResponse(
             pm.getId(),
             pm.getEmail(),
             pm.getUsername(),
-            pm.getRole(),  // Get role from User entity
+            pm.getRole(),
             pm.getFirstname(),
             pm.getLastname(),
-            null  // TODO: Generate JWT token
+            token
         );
 
         return ResponseEntity.ok(response);
@@ -393,6 +421,13 @@ public class AuthController {
                 .body(createErrorResponse("Invalid email/username or password"));
         }
 
+        // Generate JWT token
+        String token = jwtUtil.generateToken(
+            admin.getUsername(),
+            admin.getRole(),
+            admin.getId()
+        );
+        
         // Create successful login response
         LoginResponse response = new LoginResponse(
             admin.getId(),
@@ -401,7 +436,7 @@ public class AuthController {
             admin.getRole(),  // Get role from User entity (should be "ADMIN")
             admin.getFirstname(),
             admin.getLastname(),
-            null  // TODO: Generate JWT token
+            token
         );
 
         return ResponseEntity.ok(response);

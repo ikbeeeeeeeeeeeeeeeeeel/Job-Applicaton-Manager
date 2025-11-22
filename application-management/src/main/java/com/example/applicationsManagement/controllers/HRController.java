@@ -65,9 +65,12 @@ public class HRController {
      * EN: Manually trigger closing of expired job offers (for testing/admin use)
      */
     @PostMapping("/joboffers/close-expired")
-    public ResponseEntity<String> closeExpiredJobOffers() {
+    public ResponseEntity<?> closeExpiredJobOffers() {
         int closedCount = hrService.closeExpiredJobOffers();
-        return ResponseEntity.ok(closedCount + " expired job offer(s) closed successfully");
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("message", closedCount + " expired job offer(s) closed successfully");
+        response.put("count", closedCount);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -122,9 +125,9 @@ public class HRController {
      * EN: Cancel an interview
      */
     @PutMapping("/interview/{id}/cancel")
-    public ResponseEntity<String> cancelInterview(@PathVariable Long id) {
+    public ResponseEntity<?> cancelInterview(@PathVariable Long id) {
         hrService.cancelInterview(id);
-        return ResponseEntity.ok("Interview cancelled successfully");
+        return ResponseEntity.ok(java.util.Collections.singletonMap("message", "Interview cancelled successfully"));
     }
 
 

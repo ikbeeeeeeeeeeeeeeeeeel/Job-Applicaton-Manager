@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { apiGet } from '../utils/api'
 
 /**
  * Admin Dashboard
@@ -15,7 +16,7 @@ function AdminDashboard() {
   const [stats, setStats] = useState({})
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
+  const { user, logout, getToken } = useAuth()
 
   useEffect(() => {
     fetchStatistics()
@@ -23,11 +24,9 @@ function AdminDashboard() {
 
   const fetchStatistics = async () => {
     try {
-      const response = await fetch('http://localhost:8089/api/admin/statistics')
-      if (response.ok) {
-        const data = await response.json()
-        setStats(data)
-      }
+      const token = getToken()
+      const data = await apiGet('/admin/statistics', token)
+      setStats(data)
     } catch (error) {
       console.error('Error fetching statistics:', error)
     } finally {

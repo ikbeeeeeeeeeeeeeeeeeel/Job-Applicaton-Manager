@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "../../context/AuthContext"
 import { useNavigate } from "react-router-dom"
+import { apiGet, apiPut } from "../../utils/api"
 
 export default function EditProfile() {
-  const { user, login } = useAuth()
+  const { user, login, getToken } = useAuth()
   const navigate = useNavigate()
   
   const [formData, setFormData] = useState({
@@ -27,8 +28,8 @@ export default function EditProfile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await fetch(`http://localhost:8089/api/candidates/${user.id}`)
-        const data = await response.json()
+        const token = getToken()
+        const data = await apiGet(`/candidates/${user.id}`, token)
         setFormData({
           firstname: data.firstname || "",
           lastname: data.lastname || "",
@@ -49,7 +50,7 @@ export default function EditProfile() {
     if (user?.id) {
       fetchProfile()
     }
-  }, [user])
+  }, [user, getToken])
 
   const handleChange = (e) => {
     setFormData({
@@ -167,36 +168,17 @@ export default function EditProfile() {
 
       console.log("Sending profile data:", profileData)
 
-      const response = await fetch(`http://localhost:8089/api/candidates/${user.id}/profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(profileData)
+      const token = getToken()
+      const updatedCandidate = await apiPut(`/candidates/${user.id}/profile`, profileData, token)
+      
+      // Update user in AuthContext
+      login({
+        ...updatedCandidate,
+        role: "CANDIDATE"
       })
-
-      if (response.ok) {
-        const updatedCandidate = await response.json()
-        
-        // Update user in AuthContext
-        login({
-          ...updatedCandidate,
-          role: "CANDIDATE"
-        })
-        
-        alert("✅ Profile updated successfully!")
-        navigate(-1)
-      } else {
-        // Try to get detailed error message
-        try {
-          const errorData = await response.json()
-          setError(errorData.message || JSON.stringify(errorData))
-        } catch {
-          const errorText = await response.text()
-          setError(errorText || `Server error: ${response.status}`)
-        }
-        console.error("Server error:", response.status, response.statusText)
-      }
+      
+      alert("✅ Profile updated successfully!")
+      navigate(-1)
     } catch (err) {
       console.error("Error updating profile:", err)
       setError("Network error: " + err.message)

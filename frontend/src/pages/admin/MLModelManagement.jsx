@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../../context/AuthContext'
+import { apiGet, apiPost } from '../../utils/api'
 
 /**
  * ML Model Management Component
@@ -10,6 +12,7 @@ import { useState, useEffect } from 'react'
  * - View training history
  */
 export default function MLModelManagement() {
+  const { getToken } = useAuth()
   const [modelInfo, setModelInfo] = useState(null)
   const [serviceStatus, setServiceStatus] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -24,11 +27,9 @@ export default function MLModelManagement() {
 
   const fetchModelInfo = async () => {
     try {
-      const response = await fetch('http://localhost:8089/api/admin/ml/info')
-      if (response.ok) {
-        const data = await response.json()
-        setModelInfo(data)
-      }
+      const token = getToken()
+      const data = await apiGet('/admin/ml/info', token)
+      setModelInfo(data)
     } catch (err) {
       console.error('Error fetching model info:', err)
       setError('Failed to fetch model information')
@@ -39,11 +40,9 @@ export default function MLModelManagement() {
 
   const fetchServiceStatus = async () => {
     try {
-      const response = await fetch('http://localhost:8089/api/admin/ml/status')
-      if (response.ok) {
-        const data = await response.json()
-        setServiceStatus(data)
-      }
+      const token = getToken()
+      const data = await apiGet('/admin/ml/status', token)
+      setServiceStatus(data)
     } catch (err) {
       console.error('Error fetching service status:', err)
     }
@@ -55,18 +54,13 @@ export default function MLModelManagement() {
     setTrainingResult(null)
 
     try {
-      const response = await fetch('http://localhost:8089/api/admin/ml/train', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          training_size: 100,
-          test_size: 0.2
-        })
-      })
+      const token = getToken()
+      const data = await apiPost('/admin/ml/train', {
+        training_size: 100,
+        test_size: 0.2
+      }, token)
 
-      const data = await response.json()
-
-      if (response.ok && data.success) {
+      if (data.success) {
         setTrainingResult(data)
         // Refresh model info after training
         await fetchModelInfo()

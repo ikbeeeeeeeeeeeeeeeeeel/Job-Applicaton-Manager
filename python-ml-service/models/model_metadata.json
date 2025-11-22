@@ -13,6 +13,6 @@
     "is_senior",
     "is_junior"
   ],
-  "trained_at": "20251119_220349",
+  "trained_at": "20251121_231907",
   "model_type": "RandomForestClassifier"
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { apiGet, apiPost } from '../../utils/api'
 
 /**
  * JobOffers Component (Candidate View)
@@ -47,7 +48,7 @@ export default function JobOffers() {
   const [loadingCandidateData, setLoadingCandidateData] = useState(false)
   
   // Get authenticated user from AuthContext
-  const { user } = useAuth()
+  const { user, getToken } = useAuth()
   const candidateId = user?.id  // Current user's ID for applying
 
   // ===== API FUNCTIONS =====
@@ -60,9 +61,9 @@ export default function JobOffers() {
   const fetchOffers = async (search = '') => {
     setLoading(true)
     try {
+      const token = getToken()
       // Build URL with or without search parameter
-      const response = await fetch(`http://localhost:8089/api/candidates/search${search ? `?keyword=${search}` : ''}`)
-      const data = await response.json()
+      const data = await apiGet(`/candidates/search${search ? `?keyword=${search}` : ''}`, token)
       setOffers(data)
     } catch (error) {
       console.error('Failed to fetch offers:', error)
@@ -106,12 +107,10 @@ export default function JobOffers() {
   const fetchCandidateData = async () => {
     setLoadingCandidateData(true)
     try {
-      const response = await fetch(`http://localhost:8089/api/candidates/${candidateId}`)
-      if (response.ok) {
-        const data = await response.json()
-        setCandidateData(data)
-        console.log('Candidate data loaded:', { hasResume: !!data.resume, hasCoverLetter: !!data.coverLetter })
-      }
+      const token = getToken()
+      const data = await apiGet(`/candidates/${candidateId}`, token)
+      setCandidateData(data)
+      console.log('Candidate data loaded:', { hasResume: !!data.resume, hasCoverLetter: !!data.coverLetter })
     } catch (error) {
       console.error('Failed to fetch candidate data:', error)
     } finally {
@@ -205,25 +204,17 @@ export default function JobOffers() {
         coverLetterData = await convertFileToBase64(coverLetterFile)
       }
 
-      const response = await fetch('http://localhost:8089/api/candidates/apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          candidateId, 
-          jobOfferId: selectedJobId,
-          resume: resumeData,
-          coverLetter: coverLetterData
-        })
-      })
+      const token = getToken()
+      await apiPost('/candidates/apply', {
+        candidateId, 
+        jobOfferId: selectedJobId,
+        resume: resumeData,
+        coverLetter: coverLetterData
+      }, token)
 
-      if (response.ok) {
-        alert('✅ Application submitted successfully!')
-        closeApplicationModal()
-        fetchOffers()
-      } else {
-        const errorData = await response.json()
-        alert('❌ Failed to apply: ' + (errorData.message || 'Unknown error'))
-      }
+      alert('✅ Application submitted successfully!')
+      closeApplicationModal()
+      fetchOffers()
     } catch (error) {
       console.error('Application failed:', error)
       alert('❌ Network error occurred while applying.')

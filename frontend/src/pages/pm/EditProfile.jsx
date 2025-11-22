@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "../../context/AuthContext"
 import { useNavigate } from "react-router-dom"
+import { apiPut } from "../../utils/api"
 
 export default function EditProfile() {
-  const { user, login } = useAuth()
+  const { user, login, getToken } = useAuth()
   const navigate = useNavigate()
   
   const [formData, setFormData] = useState({
@@ -90,34 +91,17 @@ export default function EditProfile() {
         profileData.newPassword = formData.newPassword
       }
 
-      const response = await fetch(`http://localhost:8089/api/projectmanagers/${user.id}/profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(profileData)
+      const token = getToken()
+      const updatedPM = await apiPut(`/projectmanagers/${user.id}/profile`, profileData, token)
+      
+      // Update user in AuthContext
+      login({
+        ...updatedPM,
+        role: "PM"
       })
-
-      if (response.ok) {
-        const updatedPM = await response.json()
-        
-        // Update user in AuthContext
-        login({
-          ...updatedPM,
-          role: "PM"
-        })
-        
-        alert("✅ Profile updated successfully!")
-        navigate(-1)
-      } else {
-        try {
-          const errorData = await response.json()
-          setError(errorData.message || JSON.stringify(errorData))
-        } catch {
-          const errorText = await response.text()
-          setError(errorText || `Server error: ${response.status}`)
-        }
-      }
+      
+      alert("✅ Profile updated successfully!")
+      navigate(-1)
     } catch (err) {
       console.error("Error updating profile:", err)
       setError("Network error: " + err.message)

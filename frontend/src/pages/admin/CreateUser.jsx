@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { apiPost } from '../../utils/api'
 
 /**
  * Create User Component
@@ -9,7 +10,7 @@ import { useAuth } from '../../context/AuthContext'
  */
 function CreateUser() {
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { logout, getToken } = useAuth()
 
   const [form, setForm] = useState({
     username: '',
@@ -38,35 +39,23 @@ function CreateUser() {
 
     // Determine endpoint based on role
     const endpoint = form.role === 'HR' 
-      ? 'http://localhost:8089/api/admin/create-hr'
-      : 'http://localhost:8089/api/admin/create-pm'
+      ? '/admin/create-hr'
+      : '/admin/create-pm'
 
     try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
+      const token = getToken()
+      const createdUser = await apiPost(endpoint, form, token)
+      
+      setMessage({ 
+        type: 'success', 
+        text: `✅ ${form.role} user "${createdUser.firstname} ${createdUser.lastname}" created successfully!` 
       })
-
-      if (response.ok) {
-        const createdUser = await response.json()
-        setMessage({ 
-          type: 'success', 
-          text: `✅ ${form.role} user "${createdUser.firstname} ${createdUser.lastname}" created successfully!` 
-        })
-        
-        // Reset form
-        setForm({
-          username: '', email: '', password: '', role: 'HR',
-          firstname: '', lastname: '', department: '', phone: '', education: ''
-        })
-      } else {
-        const error = await response.json()
-        setMessage({ 
-          type: 'error', 
-          text: `❌ ${error.message || 'Failed to create user'}` 
-        })
-      }
+      
+      // Reset form
+      setForm({
+        username: '', email: '', password: '', role: 'HR',
+        firstname: '', lastname: '', department: '', phone: '', education: ''
+      })
     } catch (error) {
       setMessage({ 
         type: 'error', 

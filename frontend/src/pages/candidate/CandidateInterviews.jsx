@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "../../context/AuthContext"
+import { apiGet } from "../../utils/api"
 
 export default function CandidateInterviews() {
   const [interviews, setInterviews] = useState([])
   const [loading, setLoading] = useState(true)
-  const { user } = useAuth()
+  const { user, getToken } = useAuth()
   const candidateId = user?.id
 
   useEffect(() => {
     const fetchInterviews = async () => {
       try {
-        const res = await fetch(`http://localhost:8089/api/candidates/${candidateId}/interviews`)
-        const data = await res.json()
+        const token = getToken()
+        const data = await apiGet(`/candidates/${candidateId}/interviews`, token)
         setInterviews(data)
       } catch (err) {
         console.error("Failed to fetch interviews:", err)
@@ -20,7 +21,7 @@ export default function CandidateInterviews() {
       }
     }
     fetchInterviews()
-  }, [])
+  }, [candidateId, getToken])
 
   return (
     <div className="container">

@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react"
+import { useAuth } from "../../context/AuthContext"
+import { apiGet, apiPost, apiPut, apiDelete } from "../../utils/api"
 
 export default function InterviewsManagement() {
+  const { getToken } = useAuth()
   const [interviews, setInterviews] = useState([])
   const [editingInterview, setEditingInterview] = useState(null)
   
@@ -16,8 +19,8 @@ export default function InterviewsManagement() {
 
   const fetchInterviews = async () => {
     try {
-      const res = await fetch("http://localhost:8089/api/hr/interviews")
-      const data = await res.json()
+      const token = getToken()
+      const data = await apiGet("/hr/interviews", token)
       setInterviews(data)
     } catch (err) {
       console.error("Failed to fetch interviews:", err)
@@ -26,8 +29,8 @@ export default function InterviewsManagement() {
   
   const fetchCandidates = async () => {
     try {
-      const res = await fetch("http://localhost:8089/api/candidates")
-      const data = await res.json()
+      const token = getToken()
+      const data = await apiGet("/candidates", token)
       setCandidates(data)
     } catch (err) {
       console.error("Failed to fetch candidates:", err)
@@ -36,8 +39,8 @@ export default function InterviewsManagement() {
   
   const fetchProjectManagers = async () => {
     try {
-      const res = await fetch("http://localhost:8089/api/projectmanagers")
-      const data = await res.json()
+      const token = getToken()
+      const data = await apiGet("/projectmanagers", token)
       setProjectManagers(data)
     } catch (err) {
       console.error("Failed to fetch project managers:", err)
@@ -57,27 +60,20 @@ export default function InterviewsManagement() {
         candidateId,
         projectManagerId: pmId
       })
-      const res = await fetch(`http://localhost:8089/api/hr/interview/create?${params.toString()}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          interviewDate,
-          meetingLink,
-          status: "Planned",
-          result: "Pending"
-        })
-      })
-      if (res.ok) {
-        alert("Interview created successfully ✅")
-        setCandidateId("")
-        setPmId("")
-        setInterviewDate("")
-        setMeetingLink("")
-        fetchInterviews()
-      } else {
-        const errorData = await res.json()
-        alert("❌ Failed to create interview: " + (errorData.message || res.status))
-      }
+      const token = getToken()
+      await apiPost(`/hr/interview/create?${params.toString()}`, {
+        interviewDate,
+        meetingLink,
+        status: "Planned",
+        result: "Pending"
+      }, token)
+      
+      alert("Interview created successfully ✅")
+      setCandidateId("")
+      setPmId("")
+      setInterviewDate("")
+      setMeetingLink("")
+      fetchInterviews()
     } catch (err) {
       console.error("❌ Error creating interview:", err)
     }
@@ -89,24 +85,17 @@ export default function InterviewsManagement() {
         candidateId: interview.candidateId,
         projectManagerId: interview.projectManagerId
       })
-      const res = await fetch(`http://localhost:8089/api/hr/interview/update/${interview.id}?${params}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          interviewDate: interview.interviewDate,
-          meetingLink: interview.meetingLink,
-          status: interview.status,
-          result: interview.result
-        })
-      })
-      if (res.ok) {
-        alert("Interview updated successfully ✅")
-        setEditingInterview(null)
-        fetchInterviews()
-      } else {
-        const errorText = await res.text()
-        alert("Failed to update interview ❌ " + errorText)
-      }
+      const token = getToken()
+      await apiPut(`/hr/interview/update/${interview.id}?${params}`, {
+        interviewDate: interview.interviewDate,
+        meetingLink: interview.meetingLink,
+        status: interview.status,
+        result: interview.result
+      }, token)
+      
+      alert("Interview updated successfully ✅")
+      setEditingInterview(null)
+      fetchInterviews()
     } catch (err) {
       console.error("Error modifying interview:", err)
     }
@@ -115,15 +104,10 @@ export default function InterviewsManagement() {
   const deleteInterview = async (id) => {
     if (!window.confirm("Are you sure you want to delete this interview?")) return
     try {
-      const res = await fetch(`http://localhost:8089/api/hr/interview/${id}`, {
-        method: "DELETE",
-      })
-      if (res.ok) {
-        alert("Interview deleted successfully ✅")
-        fetchInterviews()
-      } else {
-        alert("Failed to delete interview ❌")
-      }
+      const token = getToken()
+      await apiDelete(`/hr/interview/${id}`, token)
+      alert("Interview deleted successfully ✅")
+      fetchInterviews()
     } catch (err) {
       console.error("Error deleting interview:", err)
     }

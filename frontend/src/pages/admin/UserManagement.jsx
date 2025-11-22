@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { apiGet, apiDelete, apiPut } from '../../utils/api'
 
 /**
  * User Management Component
@@ -10,7 +11,7 @@ import { useAuth } from '../../context/AuthContext'
  */
 function UserManagement() {
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { logout, getToken } = useAuth()
 
   const [users, setUsers] = useState({ hr: [], pm: [], candidates: [] })
   const [filter, setFilter] = useState('ALL')
@@ -24,15 +25,12 @@ function UserManagement() {
   const fetchAllUsers = async () => {
     setLoading(true)
     try {
-      const [hrRes, pmRes, candRes] = await Promise.all([
-        fetch('http://localhost:8089/api/admin/hr-users'),
-        fetch('http://localhost:8089/api/admin/pm-users'),
-        fetch('http://localhost:8089/api/admin/candidates')
+      const token = getToken()
+      const [hrData, pmData, candData] = await Promise.all([
+        apiGet('/admin/hr-users', token).catch(() => []),
+        apiGet('/admin/pm-users', token).catch(() => []),
+        apiGet('/admin/candidates', token).catch(() => [])
       ])
-
-      const hrData = hrRes.ok ? await hrRes.json() : []
-      const pmData = pmRes.ok ? await pmRes.json() : []
-      const candData = candRes.ok ? await candRes.json() : []
 
       setUsers({
         hr: hrData,
@@ -52,18 +50,10 @@ function UserManagement() {
     }
 
     try {
-      const response = await fetch(
-        `http://localhost:8089/api/admin/users/${userId}?role=${role}`,
-        { method: 'DELETE' }
-      )
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: `✅ ${role} user deleted successfully!` })
-        fetchAllUsers() // Refresh list
-      } else {
-        const error = await response.json()
-        setMessage({ type: 'error', text: `❌ ${error.message || 'Failed to delete user'}` })
-      }
+      const token = getToken()
+      await apiDelete(`/admin/users/${userId}?role=${role}`, token)
+      setMessage({ type: 'success', text: `✅ ${role} user deleted successfully!` })
+      fetchAllUsers() // Refresh list
     } catch (error) {
       setMessage({ type: 'error', text: `❌ Error: ${error.message}` })
     }
@@ -79,22 +69,14 @@ function UserManagement() {
     }
 
     try {
-      const response = await fetch('http://localhost:8089/api/admin/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: userId.toString(),
-          role: role,
-          newPassword: newPassword
-        })
-      })
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: `✅ Password reset successfully for ${role} user!` })
-      } else {
-        const error = await response.json()
-        setMessage({ type: 'error', text: `❌ ${error.message || 'Failed to reset password'}` })
-      }
+      const token = getToken()
+      await apiPut('/admin/reset-password', {
+        userId: userId.toString(),
+        role: role,
+        newPassword: newPassword
+      }, token)
+      
+      setMessage({ type: 'success', text: `✅ Password reset successfully for ${role} user!` })
     } catch (error) {
       setMessage({ type: 'error', text: `❌ Error: ${error.message}` })
     }

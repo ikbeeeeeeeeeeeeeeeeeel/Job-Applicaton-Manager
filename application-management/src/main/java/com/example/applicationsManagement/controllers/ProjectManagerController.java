@@ -45,7 +45,7 @@ public class ProjectManagerController {
     @PutMapping("/interviews/{interviewId}/evaluate")
     public ResponseEntity<?> evaluateInterview(@PathVariable Long interviewId, @RequestParam String comment) {
         pmService.evaluateInterview(interviewId, comment);
-        return ResponseEntity.ok("Evaluation updated");
+        return ResponseEntity.ok(java.util.Collections.singletonMap("message", "Evaluation updated"));
     }
 
     /**
@@ -58,7 +58,7 @@ public class ProjectManagerController {
             @RequestParam String decision,
             @RequestParam(required = false) String comment) {
         pmService.finalizeApplication(interviewId, decision, comment != null ? comment : "");
-        return ResponseEntity.ok("Application finalized successfully");
+        return ResponseEntity.ok(java.util.Collections.singletonMap("message", "Application finalized successfully"));
     }
 
     /**

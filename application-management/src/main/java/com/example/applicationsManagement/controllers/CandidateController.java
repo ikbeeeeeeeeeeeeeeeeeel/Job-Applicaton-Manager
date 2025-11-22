@@ -35,8 +35,14 @@ public class CandidateController {
     }
 
     @PostMapping(value = "/create", consumes = "application/json")
-    public Candidate createCandidate(@RequestBody Candidate candidate) {
-        return candidateService.createCandidate(candidate);
+    public ResponseEntity<?> createCandidate(@RequestBody Candidate candidate) {
+        try {
+            Candidate created = candidateService.createCandidate(candidate);
+            return ResponseEntity.ok(created);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(java.util.Collections.singletonMap("message", "Registration failed: " + e.getMessage()));
+        }
     }
     /**
      * EN: Search job offers by keyword

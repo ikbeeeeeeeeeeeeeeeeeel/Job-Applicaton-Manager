@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react"
+import { useAuth } from "../../context/AuthContext"
+import { apiGet, apiPut, apiPost } from "../../utils/api"
 
 /**
  * ApplicationsManagement Component
@@ -20,6 +22,9 @@ import { useEffect, useState } from "react"
  * - PUT  /api/hr/applications/{id}/review?status={status} - Update application status
  */
 export default function ApplicationsManagement() {
+  // ===== AUTHENTICATION =====
+  const { getToken } = useAuth()
+  
   // ===== STATE MANAGEMENT =====
   
   // List of all job offers fetched from backend
@@ -60,8 +65,8 @@ export default function ApplicationsManagement() {
    */
   const fetchJobOffers = async () => {
     try {
-      const response = await fetch("http://localhost:8089/api/hr/joboffers")
-      const data = await response.json()
+      const token = getToken()
+      const data = await apiGet("/hr/joboffers", token)
       setJobOffers(data)
     } catch (err) {
       console.error("Error fetching job offers:", err)
@@ -76,8 +81,8 @@ export default function ApplicationsManagement() {
   const fetchApplications = async (jobOfferId) => {
     setLoading(true)
     try {
-      const response = await fetch(`http://localhost:8089/api/hr/joboffers/${jobOfferId}/applications`)
-      const data = await response.json()
+      const token = getToken()
+      const data = await apiGet(`/hr/joboffers/${jobOfferId}/applications`, token)
       setApplications(data)
     } catch (err) {
       console.error("Error fetching applications:", err)
@@ -99,8 +104,8 @@ export default function ApplicationsManagement() {
    */
   const fetchProjectManagers = async () => {
     try {
-      const response = await fetch("http://localhost:8089/api/projectmanagers")
-      const data = await response.json()
+      const token = getToken()
+      const data = await apiGet("/projectmanagers", token)
       setProjectManagers(data)
     } catch (err) {
       console.error("Error fetching project managers:", err)
@@ -127,19 +132,13 @@ export default function ApplicationsManagement() {
    */
   const reviewApplication = async (applicationId, status) => {
     try {
-      const response = await fetch(
-        `http://localhost:8089/api/hr/applications/${applicationId}/review?status=${status}`,
-        { method: "PUT" }
-      )
-
-      if (response.ok) {
-        alert(`Application ${status.toLowerCase()} successfully! ✅`)
-        // Refresh the applications list to show updated status
-        if (selectedJobOffer) {
-          fetchApplications(selectedJobOffer.id)
-        }
-      } else {
-        alert("Failed to update application status ❌")
+      const token = getToken()
+      await apiPut(`/hr/applications/${applicationId}/review?status=${status}`, {}, token)
+      
+      alert(`Application ${status.toLowerCase()} successfully! ✅`)
+      // Refresh the applications list to show updated status
+      if (selectedJobOffer) {
+        fetchApplications(selectedJobOffer.id)
       }
     } catch (err) {
       console.error("Error reviewing application:", err)
@@ -208,28 +207,22 @@ export default function ApplicationsManagement() {
         applicationId: selectedApplicationId
       })
       
-      const res = await fetch(`http://localhost:8089/api/hr/interview/create?${params.toString()}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          interviewDate: interviewForm.interviewDate,
-          meetingLink: interviewForm.meetingLink,
-          status: "Planned",
-          result: "Pending"
-        })
-      })
-      
-      if (res.ok) {
-        alert(`Interview planned successfully for ${selectedCandidate.firstname} ${selectedCandidate.lastname}! ✅`)
-        setShowInterviewModal(false)
-        setSelectedCandidate(null)
-      } else {
-        const errorData = await res.json()
-        alert("❌ Failed to plan interview: " + (errorData.message || res.status))
+      const interviewData = {
+        interviewDate: interviewForm.interviewDate,
+        meetingLink: interviewForm.meetingLink,
+        status: "Planned",
+        result: "Pending"
       }
+      
+      const token = getToken()
+      await apiPost(`/hr/interview/create?${params.toString()}`, interviewData, token)
+      
+      alert(`Interview planned successfully for ${selectedCandidate.firstname} ${selectedCandidate.lastname}! ✅`)
+      setShowInterviewModal(false)
+      setSelectedCandidate(null)
     } catch (err) {
       console.error("❌ Error planning interview:", err)
-      alert("Error occurred while planning interview")
+      alert("Error occurred while planning interview: " + err.message)
     }
   }
 

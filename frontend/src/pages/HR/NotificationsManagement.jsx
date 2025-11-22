@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react"
+import { useAuth } from "../../context/AuthContext"
+import { apiGet, apiPost } from "../../utils/api"
 
 /**
  * NotificationsManagement Component (HR Dashboard Tab)
@@ -26,6 +28,9 @@ import { useEffect, useState } from "react"
  * - General announcements and reminders
  */
 export default function NotificationsManagement() {
+  // ===== AUTHENTICATION =====
+  const { getToken } = useAuth()
+  
   // ===== STATE MANAGEMENT =====
   
   // Notification history (all previously sent notifications)
@@ -52,8 +57,8 @@ export default function NotificationsManagement() {
    */
   const fetchNotifications = async () => {
     try {
-      const response = await fetch("http://localhost:8089/api/hr/notifications")
-      const data = await response.json()
+      const token = getToken()
+      const data = await apiGet("/hr/notifications", token)
       setNotifications(data)
     } catch (err) {
       console.error("Error fetching notifications:", err)
@@ -67,8 +72,8 @@ export default function NotificationsManagement() {
    */
   const fetchCandidates = async () => {
     try {
-      const response = await fetch("http://localhost:8089/api/candidates")
-      const data = await response.json()
+      const token = getToken()
+      const data = await apiGet("/candidates", token)
       setCandidates(data)
     } catch (err) {
       console.error("Error fetching candidates:", err)
@@ -82,8 +87,8 @@ export default function NotificationsManagement() {
    */
   const fetchProjectManagers = async () => {
     try {
-      const response = await fetch("http://localhost:8089/api/projectmanagers")
-      const data = await response.json()
+      const token = getToken()
+      const data = await apiGet("/projectmanagers", token)
       setProjectManagers(data)
     } catch (err) {
       console.error("Error fetching project managers:", err)
@@ -123,22 +128,15 @@ export default function NotificationsManagement() {
         recipientType                   // "CANDIDATE" or "PM"
       }
 
-      const response = await fetch("http://localhost:8089/api/hr/notifications/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(notificationData)
-      })
-
-      if (response.ok) {
-        alert("Notification sent successfully! ✅")
-        // Clear form fields
-        setMessage("")
-        setRecipientId("")
-        // Refresh notification history to show the new notification
-        fetchNotifications()
-      } else {
-        alert("Failed to send notification ❌")
-      }
+      const token = getToken()
+      await apiPost("/hr/notifications/send", notificationData, token)
+      
+      alert("Notification sent successfully! ✅")
+      // Clear form fields
+      setMessage("")
+      setRecipientId("")
+      // Refresh notification history to show the new notification
+      fetchNotifications()
     } catch (err) {
       console.error("Error sending notification:", err)
       alert("Error occurred while sending notification")

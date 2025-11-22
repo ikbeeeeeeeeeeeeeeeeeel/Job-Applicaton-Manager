@@ -98,16 +98,22 @@ export default function Register() {
         })
       })
 
+      console.log('Response status:', response.status)
+      console.log('Response ok:', response.ok)
+      
       if (response.ok) {
+        const data = await response.json()
+        console.log('Registration response:', data)
         alert('Registration successful! ✅ Please login to continue.')
         navigate('/login')
       } else {
         const err = await response.json()
+        console.error('Registration error:', err)
         setError(err.message || 'Registration failed')
       }
     } catch (err) {
-      console.error('Error:', err)
-      setError('Server error. Please try again.')
+      console.error('Registration exception:', err)
+      setError('Server error: ' + err.message)
     } finally {
       setLoading(false)
     }

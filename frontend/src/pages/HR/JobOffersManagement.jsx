@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react"
+import { useAuth } from "../../context/AuthContext"
+import { apiGet, apiPost, apiPut, apiDelete } from "../../utils/api"
 
 export default function JobOffersManagement() {
+  const { getToken } = useAuth()
   const [offers, setOffers] = useState([])
   const [editingOfferId, setEditingOfferId] = useState(null)
   const [search, setSearch] = useState("")
@@ -16,8 +19,8 @@ export default function JobOffersManagement() {
 
   const fetchOffers = async () => {
     try {
-      const res = await fetch("http://localhost:8089/api/hr/joboffers")
-      const data = await res.json()
+      const token = getToken()
+      const data = await apiGet("/hr/joboffers", token)
       setOffers(data)
     } catch (err) {
       console.error("Failed to fetch job offers:", err)
@@ -41,26 +44,16 @@ export default function JobOffersManagement() {
       deadline
     }
     try {
-      const url = editingOfferId
-        ? "http://localhost:8089/api/hr/joboffers/update"
-        : "http://localhost:8089/api/hr/joboffers/publish"
-
-      const method = editingOfferId ? "PUT" : "POST"
-
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      })
-
-      if (res.ok) {
-        alert(editingOfferId ? "Job offer updated successfully ✅" : "Job offer created successfully ✅")
-        resetForm()
-        fetchOffers()
+      const token = getToken()
+      if (editingOfferId) {
+        await apiPut("/hr/joboffers/update", payload, token)
+        alert("Job offer updated successfully ✅")
       } else {
-        const errorData = await res.json()
-        alert("Failed to save job offer: " + (errorData.message || res.status))
+        await apiPost("/hr/joboffers/publish", payload, token)
+        alert("Job offer created successfully ✅")
       }
+      resetForm()
+      fetchOffers()
     } catch (err) {
       console.error("Error saving job offer:", err)
     }
@@ -90,67 +83,50 @@ export default function JobOffersManagement() {
 
   const closeJobOffer = async (id) => {
     try {
-      const res = await fetch(`http://localhost:8089/api/hr/joboffers/${id}/close`, {
-        method: "PUT"
-      })
-      if (res.ok) {
-        alert("Job offer closed successfully ✅")
-        fetchOffers()
-      } else {
-        alert("Failed to close job offer ❌")
-      }
+      const token = getToken()
+      await apiPut(`/hr/joboffers/${id}/close`, {}, token)
+      alert("Job offer closed successfully ✅")
+      fetchOffers()
     } catch (err) {
       console.error("Error closing job offer:", err)
+      alert("Failed to close job offer ❌")
     }
   }
 
   const openJobOffer = async (id) => {
     try {
-      const res = await fetch(`http://localhost:8089/api/hr/joboffers/${id}/open`, {
-        method: "PUT"
-      })
-      if (res.ok) {
-        alert("Job offer reopened successfully ✅")
-        fetchOffers()
-      } else {
-        alert("Failed to reopen job offer ❌")
-      }
+      const token = getToken()
+      await apiPut(`/hr/joboffers/${id}/open`, {}, token)
+      alert("Job offer reopened successfully ✅")
+      fetchOffers()
     } catch (err) {
       console.error("Error reopening job offer:", err)
+      alert("Failed to reopen job offer ❌")
     }
   }
 
   const deleteJobOffer = async (id) => {
     if (!window.confirm("Are you sure you want to delete this job offer?")) return
     try {
-      const res = await fetch(`http://localhost:8089/api/hr/joboffers/${id}`, {
-        method: "DELETE",
-      })
-      if (res.ok) {
-        alert("Job offer deleted successfully ✅")
-        fetchOffers()
-      } else {
-        alert("Failed to delete job offer ❌")
-      }
+      const token = getToken()
+      await apiDelete(`/hr/joboffers/${id}`, token)
+      alert("Job offer deleted successfully ✅")
+      fetchOffers()
     } catch (err) {
       console.error("Error deleting job offer:", err)
+      alert("Failed to delete job offer ❌")
     }
   }
 
   const closeExpiredOffers = async () => {
     try {
-      const res = await fetch("http://localhost:8089/api/hr/joboffers/close-expired", {
-        method: "POST"
-      })
-      if (res.ok) {
-        const message = await res.text()
-        alert(message + " ✅")
-        fetchOffers()
-      } else {
-        alert("Failed to close expired offers ❌")
-      }
+      const token = getToken()
+      await apiPost("/hr/joboffers/close-expired", {}, token)
+      alert("Expired offers closed successfully ✅")
+      fetchOffers()
     } catch (err) {
       console.error("Error closing expired offers:", err)
+      alert("Failed to close expired offers ❌")
     }
   }
 

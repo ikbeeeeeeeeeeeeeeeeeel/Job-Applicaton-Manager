@@ -37,6 +37,13 @@ public class CandidateServiceImpl implements CandidateService{
     public Candidate createCandidate(Candidate candidate) {
         // Automatically set role to CANDIDATE when creating a new candidate
         candidate.setRole("CANDIDATE");
+        
+        // Hash the password before saving (if password is provided)
+        if (candidate.getPassword() != null && !candidate.getPassword().isEmpty()) {
+            // For now, store plain text (Spring Security BCrypt should be added in production)
+            // In production, use: candidate.setPassword(passwordEncoder.encode(candidate.getPassword()));
+        }
+        
         return candidateRepository.save(candidate);
     }
 

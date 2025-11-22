@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "../../context/AuthContext"
+import { apiGet, apiPut, apiDelete } from "../../utils/api"
 
 /**
  * MyApplications Component (Candidate View)
@@ -45,7 +46,7 @@ export default function MyApplications() {
   const [updating, setUpdating] = useState(false)
   
   // Get authenticated user from context
-  const { user } = useAuth()
+  const { user, getToken } = useAuth()
   const candidateId = user?.id
 
   // ===== DATA FETCHING =====
@@ -57,8 +58,8 @@ export default function MyApplications() {
   useEffect(() => {
     const fetchApplications = async () => {
       try {
-        const res = await fetch(`http://localhost:8089/api/candidates/${candidateId}/applications`)
-        const data = await res.json()
+        const token = getToken()
+        const data = await apiGet(`/candidates/${candidateId}/applications`, token)
         
         // Sort applications by submission date - most recent first
         const sortedData = data.sort((a, b) => {
@@ -73,7 +74,7 @@ export default function MyApplications() {
       }
     }
     fetchApplications()
-  }, [candidateId])
+  }, [candidateId, getToken])
 
   // ===== UTILITY FUNCTIONS =====
 
@@ -142,24 +143,15 @@ export default function MyApplications() {
     setUpdating(true)
 
     try {
-      const res = await fetch(
-        `http://localhost:8089/api/candidates/${candidateId}/applications/${editingApp.id}`,
+      const token = getToken()
+      const updatedApp = await apiPut(
+        `/candidates/${candidateId}/applications/${editingApp.id}`,
         {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            resume: editResume,
-            coverLetter: editCoverLetter
-          })
-        }
+          resume: editResume,
+          coverLetter: editCoverLetter
+        },
+        token
       )
-
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.message || 'Failed to update application')
-      }
-
-      const updatedApp = await res.json()
       
       // Update the applications list
       setApplications(apps =>
@@ -184,15 +176,8 @@ export default function MyApplications() {
     }
 
     try {
-      const res = await fetch(
-        `http://localhost:8089/api/candidates/${candidateId}/applications/${appId}`,
-        { method: 'DELETE' }
-      )
-
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.message || 'Failed to delete application')
-      }
+      const token = getToken()
+      await apiDelete(`/candidates/${candidateId}/applications/${appId}`, token)
 
       // Remove from list
       setApplications(apps => apps.filter(app => app.id !== appId))
