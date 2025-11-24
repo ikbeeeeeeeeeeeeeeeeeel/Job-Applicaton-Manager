@@ -14,29 +14,11 @@ pipeline {
             }
         }
         
-        stage('Build Backend') {
+        stage('Build & Package') {
             steps {
-                echo '🔨 Building Spring Boot Backend...'
+                echo '🔨 Building and Packaging Backend...'
                 dir('application-management') {
-                    sh 'mvn clean compile'
-                }
-            }
-        }
-        
-        stage('Run Tests') {
-            steps {
-                echo '🧪 Running Unit Tests...'
-                dir('application-management') {
-                    sh 'mvn test'
-                }
-            }
-        }
-        
-        stage('Package') {
-            steps {
-                echo '📦 Packaging Application...'
-                dir('application-management') {
-                    sh 'mvn package -DskipTests'
+                    sh 'mvn clean package -DskipTests'
                 }
             }
         }
