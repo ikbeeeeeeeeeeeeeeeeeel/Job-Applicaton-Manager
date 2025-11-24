@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: job-app-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: jobapplicationdb
+      MYSQL_USER: ikbel
+      MYSQL_PASSWORD: ikbel
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - job-app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend (Spring Boot)
+  backend:
+    image: job-app-backend:latest
+    container_name: job-app-backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/jobapplicationdb
+      SPRING_DATASOURCE_USERNAME: ikbel
+      SPRING_DATASOURCE_PASSWORD: ikbel
+    ports:
+      - "8089:8089"
+    networks:
+      - job-app-network
+    restart: unless-stopped
+
+  # Frontend (React + Nginx)
+  frontend:
+    image: job-app-frontend:latest
+    container_name: job-app-frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - job-app-network
+    restart: unless-stopped
+
+networks:
+  job-app-network:
+    driver: bridge
+
+volumes:
+  mysql-data:

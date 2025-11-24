@@ -30,11 +30,38 @@ pipeline {
                                  fingerprint: true
             }
         }
+        
+        stage('Build Docker Images') {
+            steps {
+                echo '🐳 Building Docker Images...'
+                script {
+                    // Build backend image
+                    dir('application-management') {
+                        sh "docker build -t job-app-backend:${BUILD_NUMBER} ."
+                        sh "docker tag job-app-backend:${BUILD_NUMBER} job-app-backend:latest"
+                    }
+                    
+                    // Build frontend image
+                    dir('frontend') {
+                        sh "docker build -t job-app-frontend:${BUILD_NUMBER} ."
+                        sh "docker tag job-app-frontend:${BUILD_NUMBER} job-app-frontend:latest"
+                    }
+                }
+            }
+        }
+        
+        stage('List Docker Images') {
+            steps {
+                echo '📋 Docker Images Created:'
+                sh 'docker images | grep job-app'
+            }
+        }
     }
     
     post {
         success {
             echo '✅ Pipeline completed successfully!'
+            echo '🐳 Docker images built and tagged'
         }
         failure {
             echo '❌ Pipeline failed!'
