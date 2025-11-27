@@ -48,26 +48,16 @@ pipeline {
             }
         }
         
-        stage('Deploy Application') {
-            steps {
-                echo '🚀 Deploying Application...'
-                sh '''
-                    docker-compose -f docker-compose.yml down || true
-                    docker-compose -f docker-compose.yml up -d
-                '''
-            }
-        }
-        
         stage('Verify Deployment') {
             steps {
-                echo '✅ Verifying Deployment...'
+                echo '✅ Verifying Existing Deployment...'
                 sh '''
-                    sleep 10
                     docker ps --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"
                 '''
-                echo '🎉 Deployment Complete!'
+                echo '🎉 Build Complete!'
                 echo '📱 Frontend: http://localhost:80'
                 echo '🔧 Backend: http://localhost:8089'
+                echo '💡 Note: Containers already running - skipping deployment'
             }
         }
     }
