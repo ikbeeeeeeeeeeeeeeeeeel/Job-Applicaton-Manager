@@ -110,6 +110,9 @@ pipeline {
         }
         
         stage('✅ Health Check') {
+            when {
+                branch 'main'
+            }
             steps {
                 echo '✅ Checking application health...'
                 script {
