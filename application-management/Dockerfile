@@ -1,7 +1,7 @@
 # Multi-stage build for Spring Boot Backend
 
 # Stage 1: Build
-FROM maven:3.8.7-openjdk-21-slim AS build
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 
 # Copy pom.xml and download dependencies
@@ -13,11 +13,14 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Stage 2: Runtime
-FROM openjdk:21-jdk-slim
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Create non-root user
-RUN groupadd -r spring && useradd -r -g spring spring
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Create non-root user (Alpine Linux syntax)
+RUN addgroup -S spring && adduser -S spring -G spring
 
 # Copy JAR from build stage
 COPY --from=build /app/target/*.jar app.jar
