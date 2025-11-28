@@ -10,7 +10,8 @@
  * - Base URL configuration
  */
 
-const API_BASE_URL = 'http://localhost:8089/api'
+// Use environment variable or default to /api (proxied by nginx in production)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 /**
  * Get authentication headers with JWT token
