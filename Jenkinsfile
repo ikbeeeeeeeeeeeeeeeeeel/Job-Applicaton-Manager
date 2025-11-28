@@ -1,4 +1,9 @@
--3.8.72'
+pipeline {
+    agent any
+    
+    tools {
+        maven 'Maven-3.9.6'
+        jdk 'JDK-21'
     }
     
     environment {
@@ -12,32 +17,36 @@
         BACKEND_IMAGE = 'job-manager-backend'
         FRONTEND_IMAGE = 'job-manager-frontend'
         IMAGE_TAG = "${BUILD_NUMBER}"
-        
-        // SonarQube
-        SONAR_HOST_URL = 'http://localhost:9000'
-        SONAR_TOKEN = credentials('sonarqube-token')
-        
-        // Nexus
-        NEXUS_URL = 'http://localhost:8081'
-        NEXUS_CREDENTIALS = 'nexus-credentials'
-        NEXUS_REPO = 'maven-releases📋 � from GitHubt scm
+    }
+    
+    stages {
+        stage('📋 Checkout') {
+            steps {
+                echo '📋 Checking out code from GitHub...'
+                checkout scm
                 sh 'git log -1 --pretty=format:"%h - %an: %s"'
             }
         }
         
-        sage('🧹Clean') {
-            teps {
-                eho '🧹 Cleaning previous builds...'
+        stage('🧹 Clean') {
+            steps {
+                echo '🧹 Cleaning previous builds...'
                 dir("${BACKEND_DIR}") {
-                    sh 'vn clean'
-                }🔨 Bnding Spr BootBcked...'
-                ir("${BACKEND_DIR}") {
+                    sh 'mvn clean'
+                }
+            }
+        }
+        
+        stage('🔨 Build Backend') {
+            steps {
+                echo '🔨 Building Spring Boot Backend...'
+                dir("${BACKEND_DIR}") {
                     sh 'mvn compile'
                 }
             }
         }
        
-        stge('🧪 Unit Tests - Baend') {
+        stage('🧪 Unit Tests') {
             steps {
                 echo '🧪 Running JUnit & Mockito tests...'
                 dir("${BACKEND_DIR}") {
@@ -46,62 +55,29 @@
             }
             post {
                 always {
-                    junit "${BACKEND_DIR}/tret/surefre-reports/*.xml"
-                    jacoco execPatter:"${ACKEND_DIR}/trget/jaoco.xec"
+                    junit "${BACKEND_DIR}/target/surefire-reports/*.xml"
+                    jacoco execPattern: "${BACKEND_DIR}/target/jacoco.exec"
                 }
             }
         }
         
-        stage('📊 SoarQube Analysis') {
+        stage('📦 Package Backend') {
             steps {
-                echo '📊 Running SonarQube coe analysisir("${BACKEND_DIR}") {
-                    wthSonaQubeEnv'SonarQube) {
-                        sh """
-                            mvn sonar:sonar \
-                            -Dsonr.rojectKey=job-apr \
-                            -Dsonar.projectNa='Job Application Manager' \
-                            -Dsonar.host.url=${SONAR_HOST_URL} \
-                            -Dsonar.login=${SONAR_TOKEN} \
-                            -Dsoar.java.binaries=target/classes
-                        """
-                    }
-                }
-            }
-        }
-        
-        sage(✅ Quality Gate'steps{
-         eco✅ Checking SonarQube Quality Gate...'
-                tieout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
-        
-        stage('📦 Package Backed') {
-            steps {
-               eho '📦 Crtig JAR...'
+                echo '📦 Creating JAR...'
                 dir("${BACKEND_DIR}") {
-                   sh 'mvn package 📤 Publish to Nexus') {
-            when {
-                ban 'man'
-            }
-            stps{
-                echo '📤 Publishing a to Nexu...
-                dir("${BACKEND_DIR}"
-                    sh """
-                        mvn deploy -DskipTests \            -DaltDeploymentRepository=nexu::defaul::${NEXUS_URL}/roitory/${NEXUS_REPO}
-                   """
+                    sh 'mvn package -DskipTests'
                 }
             }
         }
         
         stage('🐳 Build Docker Images') {
-            parallel stag('Bakend Image') {
+            parallel {
+                stage('Backend Image') {
                     steps {
-                        ec�Building Backend Docker image...'
-                        dir("${BCKEND_DIR}") {
+                        echo '🐳 Building Backend Docker image...'
+                        dir("${BACKEND_DIR}") {
                             script {
-                                dockeImageBackend = doker.build("${BACKEND_IMAGE}:${IMAGE_TAG}")
+                                dockerImageBackend = docker.build("${BACKEND_IMAGE}:${IMAGE_TAG}")
                                 dockerImageBackend.tag('latest')
                             }
                         }
@@ -109,10 +85,10 @@
                 }
                 stage('Frontend Image') {
                     steps {
-                        eco '🐳 Buldng Fronted Docker image...'
+                        echo '🐳 Building Frontend Docker image...'
                         dir("${FRONTEND_DIR}") {
                             script {
-                                dockerImaeFrontend= docker.build("${FRONTEND_IMGE}:${IMAGE_TAG}")
+                                dockerImageFrontend = docker.build("${FRONTEND_IMAGE}:${IMAGE_TAG}")
                                 dockerImageFrontend.tag('latest')
                             }
                         }
@@ -121,60 +97,43 @@
             }
         }
         
-        stage('🔐 Security Scan') {
+        stage('🚀 Deploy with Docker Compose') {
+            when {
+                branch 'main'
+            }
             steps {
-                echo '🔐 Scanning Docker imagesor vulnerabitis
-                sh """        dockerrun--rm-v/var/run/docker.sock:/vr/run/docke.sock \
-                    aquase/try imag ${BACKEND_IMAGE}:${IMAGE_TG} || tue
-                """
+                echo '🚀 Deploying with Docker Compose...'
+                sh '''
+                    docker-compose down || true
+                    docker-compose up -d
+                '''
             }
         }
         
-        stage('📤 Push o Docker Hub') {
-            when {
-                branch 'man'
-            }
+        stage('✅ Health Check') {
             steps {
-                echo '📤 Pushing imges to Doker Hub...'
-                scrip {
-                    docker.withRegitry("https://${DOCKER_REGISTRY}",DOCKER_CREDENTIALS) {
-                        dockerImgeBackend.push("${IMAGE_TAG}")
-                        dockeImageBackend.push('laest')
-                        dockerImageFrontend.push("${IMAGE_TAG}")
-                        dockerImageFrontend.push('latest')
-                    }
+                echo '✅ Checking application health...'
+                script {
+                    sleep 30
+                    sh '''
+                        curl -f http://localhost:8089/actuator/health || exit 1
+                        echo "Backend is healthy ✅"
+                    '''
                 }
             }
         }
-        
-        stage('🚀 Deploy wth Docker Compose') {
-            when {
-                brnh 'main'
-            }
-            sep{
-                echo 🚀 Deploying  with Docker Compose...'
-                sh """
-                    dockercopose dow || true
-                    docker-compose up -d
-                """
-            }
-        }
-        
-        st('✅ Halh Check') {
-            seps {
-                echo '✅ Checking appliction halh..'
-                scipt {
-                    sleep30             sh'''
-curl- http://localhost:8089/actuator/health || ext 1
-                        echo "Backed is halthy ✅"
-                        
-                        cul -f htt://localhos5173 ||exi 1
-                        echo "Fontend is halthy ✅"
-                    '''
-                } {
-        always
+    }
+    
+    post {
+        always {
             echo '🧹 Cleaning up workspace...'
             cleanWs()
-        } 🎉
-            // Send notification (email, Slack, etc.) Please check the logs.
-            // Send notification
+        }
+        success {
+            echo '🎉 Pipeline completed successfully!'
+        }
+        failure {
+            echo '❌ Pipeline failed. Please check the logs.'
+        }
+    }
+}
