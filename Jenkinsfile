@@ -1,79 +1,180 @@
-pipeline {
-    agent any
-    
-    tools {
-        maven 'Maven'
-        jdk 'JDK-17'
+-3.8.72'
     }
     
-    stages {
-        stage('Checkout') {
-            steps {
-                echo '📥 Checking out code...'
-                checkout scm
+    environment {
+        // Application
+        BACKEND_DIR = 'application-management'
+        FRONTEND_DIR = 'frontend'
+        
+        // Docker
+        DOCKER_REGISTRY = 'docker.io'
+        DOCKER_CREDENTIALS = 'dockerhub-credentials'
+        BACKEND_IMAGE = 'job-manager-backend'
+        FRONTEND_IMAGE = 'job-manager-frontend'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        
+        // SonarQube
+        SONAR_HOST_URL = 'http://localhost:9000'
+        SONAR_TOKEN = credentials('sonarqube-token')
+        
+        // Nexus
+        NEXUS_URL = 'http://localhost:8081'
+        NEXUS_CREDENTIALS = 'nexus-credentials'
+        NEXUS_REPO = 'maven-releases📋 � from GitHubt scm
+                sh 'git log -1 --pretty=format:"%h - %an: %s"'
             }
         }
         
-        stage('Build Backend') {
+        sage('🧹Clean') {
+            teps {
+                eho '🧹 Cleaning previous builds...'
+                dir("${BACKEND_DIR}") {
+                    sh 'vn clean'
+                }🔨 Bnding Spr BootBcked...'
+                ir("${BACKEND_DIR}") {
+                    sh 'mvn compile'
+                }
+            }
+        }
+       
+        stge('🧪 Unit Tests - Baend') {
             steps {
-                echo '🔨 Building Backend with Maven...'
-                dir('application-management') {
-                    sh 'mvn clean package -DskipTests'
+                echo '🧪 Running JUnit & Mockito tests...'
+                dir("${BACKEND_DIR}") {
+                    sh 'mvn test'
+                }
+            }
+            post {
+                always {
+                    junit "${BACKEND_DIR}/tret/surefre-reports/*.xml"
+                    jacoco execPatter:"${ACKEND_DIR}/trget/jaoco.xec"
                 }
             }
         }
         
-        stage('Archive Artifacts') {
+        stage('📊 SoarQube Analysis') {
             steps {
-                echo '💾 Archiving JAR file...'
-                archiveArtifacts artifacts: 'application-management/target/*.jar', 
-                                 fingerprint: true
-            }
-        }
-        
-        stage('Build Docker Images') {
-            steps {
-                echo '🐳 Building Docker Images...'
-                script {
-                    dir('application-management') {
-                        sh "docker build -t job-app-backend:${BUILD_NUMBER} ."
-                        sh "docker tag job-app-backend:${BUILD_NUMBER} job-app-backend:latest"
-                    }
-                    
-                    dir('frontend') {
-                        sh "docker build -t job-app-frontend:${BUILD_NUMBER} ."
-                        sh "docker tag job-app-frontend:${BUILD_NUMBER} job-app-frontend:latest"
+                echo '📊 Running SonarQube coe analysisir("${BACKEND_DIR}") {
+                    wthSonaQubeEnv'SonarQube) {
+                        sh """
+                            mvn sonar:sonar \
+                            -Dsonr.rojectKey=job-apr \
+                            -Dsonar.projectNa='Job Application Manager' \
+                            -Dsonar.host.url=${SONAR_HOST_URL} \
+                            -Dsonar.login=${SONAR_TOKEN} \
+                            -Dsoar.java.binaries=target/classes
+                        """
                     }
                 }
             }
         }
         
-        stage('Verify Deployment') {
-            steps {
-                echo '✅ Verifying Existing Deployment...'
-                sh '''
-                    docker ps --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"
-                '''
-                echo '🎉 Build Complete!'
-                echo '📱 Frontend: http://localhost:80'
-                echo '🔧 Backend: http://localhost:8089'
-                echo '💡 Note: Containers already running - skipping deployment'
+        sage(✅ Quality Gate'steps{
+         eco✅ Checking SonarQube Quality Gate...'
+                tieout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
-    }
-    
-    post {
-        success {
-            echo '✅ Pipeline completed successfully!'
-            echo '🐳 Docker images: job-app-backend:latest, job-app-frontend:latest'
-            echo '🚀 Application is running!'
-            echo '📱 Access your app at: http://localhost:80'
+        
+        stage('📦 Package Backed') {
+            steps {
+               eho '📦 Crtig JAR...'
+                dir("${BACKEND_DIR}") {
+                   sh 'mvn package 📤 Publish to Nexus') {
+            when {
+                ban 'man'
+            }
+            stps{
+                echo '📤 Publishing a to Nexu...
+                dir("${BACKEND_DIR}"
+                    sh """
+                        mvn deploy -DskipTests \            -DaltDeploymentRepository=nexu::defaul::${NEXUS_URL}/roitory/${NEXUS_REPO}
+                   """
+                }
+            }
         }
-        failure {
-            echo '❌ Pipeline failed! Check the logs above.'
+        
+        stage('🐳 Build Docker Images') {
+            parallel stag('Bakend Image') {
+                    steps {
+                        ec�Building Backend Docker image...'
+                        dir("${BCKEND_DIR}") {
+                            script {
+                                dockeImageBackend = doker.build("${BACKEND_IMAGE}:${IMAGE_TAG}")
+                                dockerImageBackend.tag('latest')
+                            }
+                        }
+                    }
+                }
+                stage('Frontend Image') {
+                    steps {
+                        eco '🐳 Buldng Fronted Docker image...'
+                        dir("${FRONTEND_DIR}") {
+                            script {
+                                dockerImaeFrontend= docker.build("${FRONTEND_IMGE}:${IMAGE_TAG}")
+                                dockerImageFrontend.tag('latest')
+                            }
+                        }
+                    }
+                }
+            }
         }
-        always {
-            echo '🧹 Pipeline execution finished'
+        
+        stage('🔐 Security Scan') {
+            steps {
+                echo '🔐 Scanning Docker imagesor vulnerabitis
+                sh """        dockerrun--rm-v/var/run/docker.sock:/vr/run/docke.sock \
+                    aquase/try imag ${BACKEND_IMAGE}:${IMAGE_TG} || tue
+                """
+            }
         }
-    }
-}
+        
+        stage('📤 Push o Docker Hub') {
+            when {
+                branch 'man'
+            }
+            steps {
+                echo '📤 Pushing imges to Doker Hub...'
+                scrip {
+                    docker.withRegitry("https://${DOCKER_REGISTRY}",DOCKER_CREDENTIALS) {
+                        dockerImgeBackend.push("${IMAGE_TAG}")
+                        dockeImageBackend.push('laest')
+                        dockerImageFrontend.push("${IMAGE_TAG}")
+                        dockerImageFrontend.push('latest')
+                    }
+                }
+            }
+        }
+        
+        stage('🚀 Deploy wth Docker Compose') {
+            when {
+                brnh 'main'
+            }
+            sep{
+                echo 🚀 Deploying  with Docker Compose...'
+                sh """
+                    dockercopose dow || true
+                    docker-compose up -d
+                """
+            }
+        }
+        
+        st('✅ Halh Check') {
+            seps {
+                echo '✅ Checking appliction halh..'
+                scipt {
+                    sleep30             sh'''
+curl- http://localhost:8089/actuator/health || ext 1
+                        echo "Backed is halthy ✅"
+                        
+                        cul -f htt://localhos5173 ||exi 1
+                        echo "Fontend is halthy ✅"
+                    '''
+                } {
+        always
+            echo '🧹 Cleaning up workspace...'
+            cleanWs()
+        } 🎉
+            // Send notification (email, Slack, etc.) Please check the logs.
+            // Send notification

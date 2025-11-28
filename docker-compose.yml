@@ -4,57 +4,111 @@ services:
   # MySQL Database
   mysql:
     image: mysql:8.0
-    container_name: job-app-mysql
+    container_name: job-manager-mysql
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: jobapplicationdb
-      MYSQL_USER: ikbel
-      MYSQL_PASSWORD: ikbel
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: job_application_db
+      MYSQL_USER: devuser
+      MYSQL_PASSWORD: devpassword
     ports:
       - "3306:3306"
     volumes:
-      - mysql-data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
     networks:
-      - job-app-network
-    restart: always
+      - app-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Backend (Spring Boot)
+  # Backend - Spring Boot
   backend:
-    image: job-app-backend:latest
-    container_name: job-app-backend
+    build:
+      context: ./application-management
+      dockerfile: Dockerfile
+    container_name: job-manager-backend
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/job_application_db
+      SPRING_DATASOURCE_USERNAME: devuser
+      SPRING_DATASOURCE_PASSWORD: devpassword
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_PROFILES_ACTIVE: prod
     depends_on:
       mysql:
         condition: service_healthy
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/jobapplicationdb
-      SPRING_DATASOURCE_USERNAME: ikbel
-      SPRING_DATASOURCE_PASSWORD: ikbel
-    ports:
-      - "8089:8089"
     networks:
-      - job-app-network
-    restart: always
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8089/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
-  # Frontend (React + Nginx)
+  # Frontend - React
   frontend:
-    image: job-app-frontend:latest
-    container_name: job-app-frontend
-    depends_on:
-      - backend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: job-manager-frontend
+    restart: unless-stopped
     ports:
       - "80:80"
+    depends_on:
+      - backend
     networks:
-      - job-app-network
-    restart: always
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus - Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: job-manager-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - app-network
+
+  # Grafana - Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: job-manager-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
 
 networks:
-  job-app-network:
+  app-network:
     driver: bridge
 
 volumes:
-  mysql-data:
+  mysql_data:
+  prometheus_data:
+  grafana_data:

@@ -1,365 +1,330 @@
-# DevOps Pipeline Setup Guide
+# 🚀 DevOps Setup Guide - Job Application Manager
 
-## 🚀 Complete CI/CD Pipeline with Jenkins, SonarQube, Nexus & Kubernetes
-
----
-
-## **Prerequisites**
-
-- Docker & Docker Compose installed
-- Kubernetes cluster (Minikube, K3s, or Docker Desktop with Kubernetes)
-- Jenkins running with required plugins
-- Git configured
+## 📋 Prerequisites Installed
+- ✅ Jenkins 2.539
+- ✅ Java 21
+- ✅ Maven 3.8.7
+- ✅ Docker
 
 ---
 
-## **1. Start DevOps Tools Stack**
+## 🛠️ Step 1: Install Additional Tools
 
-### **Option A: Start All Services (Application + DevOps Tools)**
-
+### 1.1 Install Docker Compose
 ```bash
-cd ~/Desktop/Job-Applicaton-Manager
-
-# Copy the extended docker-compose file to VM
-# Then run:
-docker-compose -f docker-compose-devops.yml up -d
+sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+docker-compose --version
 ```
 
-### **Services Started:**
-- **MySQL**: `localhost:3306`
-- **Backend**: `localhost:8089`
-- **Frontend**: `localhost:80`
-- **SonarQube**: `localhost:9000`
-- **Nexus**: `localhost:8081`
+### 1.2 Install SonarQube via Docker
+```bash
+docker run -d --name sonarqube \
+  -p 9000:9000 \
+  -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true \
+  sonarqube:latest
+
+# Wait 2-3 minutes for SonarQube to start
+# Access: http://192.168.245.131:9000
+# Default credentials: admin/admin
+```
+
+### 1.3 Install Nexus via Docker
+```bash
+docker run -d --name nexus \
+  -p 8081:8081 \
+  -v nexus-data:/nexus-data \
+  sonatype/nexus3:latest
+
+# Wait 2-3 minutes for Nexus to start
+# Access: http://192.168.245.131:8081
+# Get admin password:
+docker exec -it nexus cat /nexus-data/admin.password
+```
 
 ---
 
-## **2. Configure SonarQube**
+## 🔧 Step 2: Configure Jenkins
 
-### **Initial Setup:**
+### 2.1 Install Jenkins Plugins
+Go to Jenkins → Manage Jenkins → Plugins → Available Plugins
 
-1. **Access SonarQube**: http://localhost:9000
-2. **Default credentials**: 
-   - Username: `admin`
-   - Password: `admin`
-3. **Change password** when prompted
-4. **Create a project**:
-   - Project key: `job-application-manager`
-   - Display name: `Job Application Manager`
-5. **Generate token**:
-   - Go to: My Account → Security → Generate Tokens
-   - Name: `jenkins`
-   - Copy the token (you'll need it for Jenkins)
+Install these plugins:
+- ✅ Git
+- ✅ GitHub
+- ✅ Pipeline
+- ✅ Docker Pipeline
+- ✅ SonarQube Scanner
+- ✅ JaCoCo
+- ✅ JUnit
 
-### **Configure in Jenkins:**
+### 2.2 Configure Maven in Jenkins
+1. Go to **Manage Jenkins** → **Tools**
+2. Add Maven:
+   - Name: `Maven-3.8.7`
+   - MAVEN_HOME: `/usr/share/maven`
 
-1. Go to: **Manage Jenkins → Configure System**
-2. Find **SonarQube servers** section
-3. Add SonarQube:
+### 2.3 Configure JDK in Jenkins
+1. Go to **Manage Jenkins** → **Tools**
+2. Add JDK:
+   - Name: `JDK-21`
+   - JAVA_HOME: `/usr/lib/jvm/java-21-openjdk-amd64`
+
+### 2.4 Configure SonarQube in Jenkins
+1. Go to **Manage Jenkins** → **System**
+2. Add SonarQube Server:
    - Name: `SonarQube`
-   - Server URL: `http://localhost:9000`
-   - Server authentication token: (paste the token from SonarQube)
+   - Server URL: `http://192.168.245.131:9000`
+   - Token: Generate from SonarQube → My Account → Security → Generate Token
+
+3. Add token as Jenkins credential:
+   - Go to **Manage Jenkins** → **Credentials**
+   - Add → Secret text
+   - ID: `sonarqube-token`
+   - Secret: [paste token]
+
+### 2.5 Configure Docker Hub Credentials
+1. Go to **Manage Jenkins** → **Credentials**
+2. Add → Username with password
+   - ID: `dockerhub-credentials`
+   - Username: [your Docker Hub username]
+   - Password: [your Docker Hub password]
+
+### 2.6 Configure Nexus Credentials
+1. Go to **Manage Jenkins** → **Credentials**
+2. Add → Username with password
+   - ID: `nexus-credentials`
+   - Username: `admin`
+   - Password: [from Step 1.3]
 
 ---
 
-## **3. Configure Nexus**
+## 📝 Step 3: Update Maven Settings for Nexus
 
-### **Initial Setup:**
-
-1. **Access Nexus**: http://localhost:8081
-2. **Get initial password**:
-   ```bash
-   docker exec nexus cat /nexus-data/admin.password
-   ```
-3. **Login** with username `admin` and the password from above
-4. **Complete setup wizard**:
-   - Set new password
-   - Enable anonymous access (optional)
-   - Configure repositories
-
-### **Create Maven Repositories:**
-
-Nexus comes with default repositories:
-- `maven-releases` (for release artifacts)
-- `maven-snapshots` (for snapshot artifacts)
-- `maven-central` (proxy to Maven Central)
-
-### **Configure in Jenkins:**
-
-Create `~/.m2/settings.xml` in Jenkins container:
-
+Create `~/.m2/settings.xml`:
 ```xml
 <settings>
   <servers>
     <server>
-      <id>nexus-releases</id>
-      <username>admin</username>
-      <password>YOUR_NEXUS_PASSWORD</password>
-    </server>
-    <server>
-      <id>nexus-snapshots</id>
+      <id>nexus</id>
       <username>admin</username>
       <password>YOUR_NEXUS_PASSWORD</password>
     </server>
   </servers>
+  
+  <mirrors>
+    <mirror>
+      <id>nexus</id>
+      <mirrorOf>*</mirrorOf>
+      <url>http://localhost:8081/repository/maven-public/</url>
+    </mirror>
+  </mirrors>
 </settings>
 ```
 
 ---
 
-## **4. Setup Kubernetes**
+## 🐳 Step 4: Setup Docker
 
-### **Option A: Minikube (Recommended for local development)**
-
+### 4.1 Add Jenkins user to Docker group
 ```bash
-# Install Minikube
-curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-sudo install minikube-linux-amd64 /usr/local/bin/minikube
-
-# Start Minikube
-minikube start --driver=docker
-
-# Verify
-kubectl get nodes
+sudo usermod -aG docker jenkins
+sudo systemctl restart jenkins
 ```
 
-### **Option B: Docker Desktop Kubernetes**
-
-1. Open Docker Desktop
-2. Settings → Kubernetes
-3. Enable Kubernetes
-4. Apply & Restart
-
-### **Option C: K3s (Lightweight Kubernetes)**
-
+### 4.2 Verify Docker access
 ```bash
-curl -sfL https://get.k3s.io | sh -
-sudo chmod 644 /etc/rancher/k3s/k3s.yaml
-export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+sudo -u jenkins docker ps
 ```
 
-### **Configure kubectl in Jenkins:**
+---
 
+## 🔐 Step 5: Configure SonarQube
+
+1. Access SonarQube: `http://192.168.245.131:9000`
+2. Login with: `admin/admin` → Change password
+3. Go to **Administration** → **Configuration** → **Webhooks**
+4. Create webhook:
+   - Name: `Jenkins`
+   - URL: `http://192.168.245.131:8080/sonarqube-webhook/`
+
+---
+
+## 🚀 Step 6: Run the Pipeline
+
+### 6.1 Push code to GitHub
 ```bash
-# Copy kubeconfig to Jenkins container
-docker cp ~/.kube/config jenkins:/var/jenkins_home/.kube/config
-docker exec jenkins chown jenkins:jenkins /var/jenkins_home/.kube/config
+cd ~/Desktop/job-application-manager
+git add .
+git commit -m "Add DevOps configuration"
+git push origin main
+```
+
+### 6.2 Trigger Jenkins Build
+Option 1: **Manual**
+- Go to Jenkins Dashboard
+- Click "Build Now" on your pipeline
+
+Option 2: **Automatic (Poll SCM)**
+- Already configured (H/5 * * * *)
+- Jenkins will check GitHub every 5 minutes
+
+### 6.3 Monitor Build
+- Click on build number → Console Output
+- Watch each stage execute
+
+---
+
+## 📊 Step 7: Access Monitoring Tools
+
+### Grafana
+```bash
+# After docker-compose up
+# Access: http://192.168.245.131:3000
+# Login: admin/admin123
+```
+
+**Import Dashboard:**
+1. Go to Dashboards → New → Import
+2. Use Dashboard ID: `4701` (JVM Micrometer)
+3. Select Prometheus datasource
+
+### Prometheus
+```bash
+# Access: http://192.168.245.131:9090
+# Check targets: Status → Targets
 ```
 
 ---
 
-## **5. Install Required Jenkins Plugins**
+## 🧪 Step 8: Create Sample Tests (Optional)
 
-Go to **Manage Jenkins → Manage Plugins → Available**
+Create a simple test to verify JUnit + Mockito:
 
-Install:
-- ✅ SonarQube Scanner
-- ✅ Kubernetes CLI
-- ✅ Docker Pipeline
-- ✅ Nexus Artifact Uploader
-- ✅ Pipeline Utility Steps
+**File:** `application-management/src/test/java/com/example/applicationsManagement/SimpleTest.java`
 
----
+```java
+package com.example.applicationsManagement;
 
-## **6. Configure Jenkins Tools**
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
-**Manage Jenkins → Global Tool Configuration**
-
-### **Maven:**
-- Name: `Maven`
-- Install automatically: ✅
-- Version: 3.9.x
-
-### **JDK:**
-- Name: `JDK-17`
-- Install automatically: ✅
-- Version: 17
-
-### **SonarQube Scanner:**
-- Name: `SonarQube Scanner`
-- Install automatically: ✅
-
----
-
-## **7. Pipeline Execution Flow**
-
-```
-1. Checkout Code (Git)
-2. Build & Package (Maven)
-3. Run Tests (JUnit)
-4. SonarQube Analysis (Code Quality)
-5. Quality Gate Check
-6. Upload to Nexus (Artifact Repository)
-7. Archive Artifacts (Jenkins)
-8. Build Docker Images
-9. Push to Registry (Optional)
-10. Deploy to Kubernetes
-11. Verify Deployment
+public class SimpleTest {
+    
+    @Test
+    public void testAddition() {
+        assertEquals(4, 2 + 2);
+    }
+    
+    @Test
+    public void testSubtraction() {
+        assertEquals(0, 2 - 2);
+    }
+}
 ```
 
 ---
 
-## **8. Run the Pipeline**
+## ✅ Pipeline Stages Overview
 
-### **In Jenkins:**
+| Stage | Purpose | Duration |
+|-------|---------|----------|
+| 📋 Checkout | Clone from GitHub | ~5s |
+| 🧹 Clean | Clean previous builds | ~3s |
+| 🔨 Build | Compile Java code | ~20s |
+| 🧪 Unit Tests | Run JUnit tests | ~15s |
+| 📊 SonarQube | Code analysis | ~30s |
+| ✅ Quality Gate | Check quality | ~5s |
+| 📦 Package | Create JAR | ~10s |
+| 📤 Nexus | Upload artifact | ~10s |
+| 🐳 Docker Build | Build images | ~60s |
+| 🔐 Security Scan | Trivy scan | ~30s |
+| 📤 Docker Push | Push to Hub | ~30s |
+| 🚀 Deploy | Docker Compose | ~30s |
+| ✅ Health Check | Verify running | ~30s |
 
-1. Go to your pipeline job
-2. Click **Build Now**
-3. Monitor the pipeline stages
-4. Check console output for any errors
+**Total:** ~4-5 minutes
 
-### **Expected Results:**
+---
 
+## 🐛 Troubleshooting
+
+### Jenkins can't connect to Docker
+```bash
+sudo usermod -aG docker jenkins
+sudo systemctl restart jenkins
+```
+
+### SonarQube not starting
+```bash
+# Increase max_map_count
+sudo sysctl -w vm.max_map_count=262144
+```
+
+### Permission denied on Nexus
+```bash
+docker exec -it nexus chown -R nexus:nexus /nexus-data
+docker restart nexus
+```
+
+### Pipeline fails on Maven
+```bash
+# Reload Maven in Jenkins
+mvn clean install -U
+```
+
+---
+
+## 📈 Success Metrics
+
+After successful pipeline:
 - ✅ All tests pass
-- ✅ SonarQube analysis completes
-- ✅ Quality gate passes
-- ✅ Artifacts uploaded to Nexus
-- ✅ Docker images built
-- ✅ Kubernetes deployment successful
+- ✅ Code coverage > 50%
+- ✅ SonarQube Quality Gate passes
+- ✅ Docker images built and pushed
+- ✅ Application deployed and healthy
+- ✅ Grafana shows metrics
 
 ---
 
-## **9. Verify Kubernetes Deployment**
+## 🎯 Next Steps
 
-```bash
-# Check pods
-kubectl get pods
-
-# Check services
-kubectl get services
-
-# Check deployments
-kubectl get deployments
-
-# View logs
-kubectl logs -f deployment/backend
-kubectl logs -f deployment/frontend
-
-# Access application
-kubectl port-forward service/frontend 8080:80
-# Then visit: http://localhost:8080
-```
+1. **Write More Tests** - Increase code coverage
+2. **Configure Email Notifications** - Alert on failures
+3. **Add Slack Integration** - Real-time notifications
+4. **Setup Backup Strategy** - Database backups
+5. **Add Integration Tests** - Test full workflows
+6. **Performance Testing** - JMeter/Gatling
+7. **Security Scanning** - OWASP Dependency Check
 
 ---
 
-## **10. Access Deployed Application**
+## 📚 Useful Commands
 
-### **If using LoadBalancer (cloud):**
 ```bash
-kubectl get service frontend
-# Use EXTERNAL-IP
-```
+# View Jenkins logs
+sudo journalctl -u jenkins -f
 
-### **If using NodePort (local):**
-```bash
-kubectl get service frontend
-# Access via: http://<node-ip>:<node-port>
-```
+# View Docker logs
+docker logs -f job-manager-backend
+docker logs -f job-manager-frontend
 
-### **If using Port Forward:**
-```bash
-kubectl port-forward service/frontend 8080:80
-# Access via: http://localhost:8080
+# Restart all services
+docker-compose restart
+
+# View running containers
+docker ps
+
+# Clean Docker
+docker system prune -a --volumes
+
+# Maven test only
+mvn test
+
+# Maven with coverage
+mvn clean test jacoco:report
 ```
 
 ---
 
-## **11. Monitoring & Logs**
-
-### **SonarQube Dashboard:**
-- URL: http://localhost:9000
-- View code quality metrics, bugs, vulnerabilities
-
-### **Nexus Repository:**
-- URL: http://localhost:8081
-- Browse uploaded artifacts
-
-### **Kubernetes Dashboard (Optional):**
-```bash
-# For Minikube
-minikube dashboard
-
-# For K3s/others
-kubectl proxy
-# Then visit: http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
-```
-
----
-
-## **12. Troubleshooting**
-
-### **SonarQube Issues:**
-```bash
-# Check logs
-docker-compose logs sonarqube
-
-# Restart
-docker-compose restart sonarqube
-```
-
-### **Nexus Issues:**
-```bash
-# Check logs
-docker-compose logs nexus
-
-# Get admin password
-docker exec nexus cat /nexus-data/admin.password
-```
-
-### **Kubernetes Issues:**
-```bash
-# Check pod status
-kubectl describe pod <pod-name>
-
-# View events
-kubectl get events --sort-by='.lastTimestamp'
-
-# Check logs
-kubectl logs <pod-name>
-```
-
-### **Jenkins Pipeline Fails:**
-- Check Jenkins console output
-- Verify all credentials are configured
-- Ensure all tools are installed
-- Check network connectivity between services
-
----
-
-## **13. Clean Up**
-
-### **Stop all services:**
-```bash
-docker-compose -f docker-compose-devops.yml down
-```
-
-### **Remove volumes (fresh start):**
-```bash
-docker-compose -f docker-compose-devops.yml down -v
-```
-
-### **Delete Kubernetes resources:**
-```bash
-kubectl delete -f k8s/
-```
-
----
-
-## **🎯 Next Steps**
-
-1. ✅ Add monitoring with Prometheus & Grafana
-2. ✅ Implement automated testing with Selenium
-3. ✅ Add security scanning with OWASP Dependency Check
-4. ✅ Configure auto-scaling in Kubernetes
-5. ✅ Set up GitOps with ArgoCD
-6. ✅ Implement blue-green or canary deployments
-
----
-
-## **📚 Resources**
-
-- [Jenkins Documentation](https://www.jenkins.io/doc/)
-- [SonarQube Documentation](https://docs.sonarqube.org/)
-- [Nexus Documentation](https://help.sonatype.com/repomanager3)
-- [Kubernetes Documentation](https://kubernetes.io/docs/)
-- [Docker Documentation](https://docs.docker.com/)
+**🎉 Your CI/CD pipeline is ready!**
