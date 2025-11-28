@@ -3,6 +3,7 @@ package com.example.applicationsManagement.controllers;
 
 // ===== IMPORTS =====
 // Import custom DTOs (Data Transfer Objects) for request/response handling
+import com.example.applicationsManagement.dto.CreateUserRequest; // Contains registration data from frontend
 import com.example.applicationsManagement.dto.LoginRequest;   // Contains login credentials from frontend
 import com.example.applicationsManagement.dto.LoginResponse;  // Contains user data to send back to frontend
 
@@ -181,6 +182,125 @@ public class AuthController {
             return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(createErrorResponse("Login failed: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * ===== REGISTER METHOD =====
+     * 
+     * This endpoint allows new users to register in the system
+     * Supports CANDIDATE, HR, PM, and ADMIN roles
+     * 
+     * @param request - Registration data from frontend
+     * @return ResponseEntity with success message or error
+     */
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody CreateUserRequest request) {
+        try {
+            // Validate required fields
+            if (request.getUsername() == null || request.getEmail() == null || 
+                request.getPassword() == null || request.getRole() == null) {
+                return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(createErrorResponse("Missing required fields"));
+            }
+
+            // Check if username already exists
+            if (candidateRepository.findByUsername(request.getUsername()).isPresent() ||
+                hrRepository.findByUsername(request.getUsername()).isPresent() ||
+                projectManagerRepository.findByUsername(request.getUsername()).isPresent() ||
+                adminRepository.findByUsername(request.getUsername()).isPresent()) {
+                return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body(createErrorResponse("Username already exists"));
+            }
+
+            // Check if email already exists
+            if (candidateRepository.findByEmail(request.getEmail()).isPresent() ||
+                hrRepository.findByEmail(request.getEmail()).isPresent() ||
+                projectManagerRepository.findByEmail(request.getEmail()).isPresent() ||
+                adminRepository.findByEmail(request.getEmail()).isPresent()) {
+                return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body(createErrorResponse("Email already exists"));
+            }
+
+            // Create user based on role
+            String role = request.getRole().toUpperCase();
+            
+            switch (role) {
+                case "CANDIDATE":
+                    Candidate candidate = new Candidate();
+                    candidate.setUsername(request.getUsername());
+                    candidate.setEmail(request.getEmail());
+                    candidate.setPassword(request.getPassword()); // Note: Should hash in production
+                    candidate.setRole("ROLE_CANDIDATE");
+                    candidate.setFirstname(request.getFirstname());
+                    candidate.setLastname(request.getLastname());
+                    candidate.setPhone(request.getPhone());
+                    candidateRepository.save(candidate);
+                    break;
+
+                case "HR":
+                    HR hr = new HR();
+                    hr.setUsername(request.getUsername());
+                    hr.setEmail(request.getEmail());
+                    hr.setPassword(request.getPassword());
+                    hr.setRole("ROLE_HR");
+                    hr.setFirstname(request.getFirstname());
+                    hr.setLastname(request.getLastname());
+                    hr.setPhone(request.getPhone());
+                    hr.setDepartement(request.getDepartment());
+                    hr.setEducation(request.getEducation());
+                    hrRepository.save(hr);
+                    break;
+
+                case "PM":
+                    ProjectManager pm = new ProjectManager();
+                    pm.setUsername(request.getUsername());
+                    pm.setEmail(request.getEmail());
+                    pm.setPassword(request.getPassword());
+                    pm.setRole("ROLE_PM");
+                    pm.setFirstname(request.getFirstname());
+                    pm.setLastname(request.getLastname());
+                    pm.setPhone(request.getPhone());
+                    pm.setDepartement(request.getDepartment());
+                    pm.setEducation(request.getEducation());
+                    projectManagerRepository.save(pm);
+                    break;
+
+                case "ADMIN":
+                    Admin admin = new Admin();
+                    admin.setUsername(request.getUsername());
+                    admin.setEmail(request.getEmail());
+                    admin.setPassword(request.getPassword());
+                    admin.setRole("ROLE_ADMIN");
+                    admin.setFirstname(request.getFirstname());
+                    admin.setLastname(request.getLastname());
+                    admin.setPhone(request.getPhone());
+                    admin.setDepartment(request.getDepartment());
+                    adminRepository.save(admin);
+                    break;
+
+                default:
+                    return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body(createErrorResponse("Invalid role. Must be CANDIDATE, HR, PM, or ADMIN"));
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "User registered successfully");
+            response.put("username", request.getUsername());
+            response.put("role", role);
+            
+            return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
+
+        } catch (Exception e) {
+            return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(createErrorResponse("Registration failed: " + e.getMessage()));
         }
     }
 
