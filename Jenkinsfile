@@ -60,7 +60,23 @@ pipeline {
             }
         }
         
-        stage('📦 Package Backend') {
+        stage('� SonarQube Analysis') {
+            steps {
+                echo '📊 Running SonarQube code analysis...'
+                dir("${BACKEND_DIR}") {
+                    withSonarQubeEnv('SonarQube') {
+                        sh '''
+                            mvn sonar:sonar \
+                              -Dsonar.projectKey=job-application-manager \
+                              -Dsonar.projectName="Job Application Manager" \
+                              -Dsonar.java.binaries=target/classes
+                        '''
+                    }
+                }
+            }
+        }
+        
+        stage('�📦 Package Backend') {
             steps {
                 echo '📦 Creating JAR...'
                 dir("${BACKEND_DIR}") {
