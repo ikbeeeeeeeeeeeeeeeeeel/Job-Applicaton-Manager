@@ -14,7 +14,7 @@ class nomPrenomClasseExamenApplicationTests {
     @Test
     void contextLoads() {
         // Test that Spring context loads successfully
-        assertNotNull("Context should load", this);
+        assertNotNull(this, "Context should load");
     }
 
     @Test
