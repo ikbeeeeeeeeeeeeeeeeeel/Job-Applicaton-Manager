@@ -20,7 +20,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 /**
@@ -326,7 +325,7 @@ class CandidateServiceImplTest {
             candidateService.deleteApplication(1L, 999L); // Different candidate ID
         });
         
-        assertTrue(exception.getMessage().contains("not authorized"));
+        assertTrue(exception.getMessage().contains("Unauthorized"));
         verify(applicationRepository, never()).delete(any());
     }
 }

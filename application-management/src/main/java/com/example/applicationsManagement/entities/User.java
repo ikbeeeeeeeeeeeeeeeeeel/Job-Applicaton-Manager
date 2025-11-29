@@ -9,6 +9,7 @@ import lombok.Setter;
 import java.io.Serializable;
 
 @Entity
+@Table(name = "users")
 @Getter
 @Setter
 @AllArgsConstructor
