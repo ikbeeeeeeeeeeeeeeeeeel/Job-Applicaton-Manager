@@ -88,7 +88,8 @@ public class CandidateServiceImpl implements CandidateService{
         }
 
         // Check for duplicate application
-        boolean alreadyApplied = candidate.getApplications().stream()
+        boolean alreadyApplied = candidate.getApplications() != null && 
+                candidate.getApplications().stream()
                 .anyMatch(app -> app.getJobOffer().getId().equals(jobOfferId));
         
         if (alreadyApplied) {
@@ -137,9 +138,12 @@ public class CandidateServiceImpl implements CandidateService{
 
     @Override
     public List<Application> getApplicationsByCandidate(Long candidateId) {
-        Candidate candidate = candidateRepository.findById(candidateId)
+        // Verify candidate exists
+        candidateRepository.findById(candidateId)
                 .orElseThrow(() -> new RuntimeException("Candidate not found"));
-        return candidate.getApplications();
+        
+        // Use repository to fetch applications instead of lazy-loaded collection
+        return applicationRepository.findByCandidateId(candidateId);
     }
 
 
