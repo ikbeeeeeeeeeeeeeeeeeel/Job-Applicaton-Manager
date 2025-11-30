@@ -35,8 +35,6 @@
             <repository>
                 <id>deploymentRepo</id>
                 <name>Nexus Repository</name>
-                <username>admin</username>
-              <password>ikbel</password>
                 <url>http://192.168.245.132:8081/repository/maven-releases/</url>
             </repository>
         </distributionManagement>
