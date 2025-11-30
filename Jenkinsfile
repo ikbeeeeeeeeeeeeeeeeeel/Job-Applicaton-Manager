@@ -77,7 +77,6 @@ pipeline {
         }
         
         stage('📦 Package Backend') {
-        stage('�📦 Package Backend') {
             steps {
                 echo '📦 Creating JAR...'
                 dir("${BACKEND_DIR}") {
