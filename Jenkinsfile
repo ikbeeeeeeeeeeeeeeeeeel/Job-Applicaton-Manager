@@ -60,7 +60,7 @@ pipeline {
             }
         }
         
-        stage('� SonarQube Analysis') {
+        stage('📊 SonarQube Analysis') {
             steps {
                 echo '📊 Running SonarQube code analysis...'
                 dir("${BACKEND_DIR}") {
@@ -76,6 +76,7 @@ pipeline {
             }
         }
         
+        stage('📦 Package Backend') {
         stage('�📦 Package Backend') {
             steps {
                 echo '📦 Creating JAR...'
