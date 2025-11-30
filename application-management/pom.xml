@@ -29,6 +29,16 @@
         <properties>
             <java.version>17</java.version>
         </properties>
+        
+        <!-- Deploy to Nexus -->
+        <distributionManagement>
+            <repository>
+                <id>deploymentRepo</id>
+                <name>Nexus Repository</name>
+                <url>http://192.168.245.132:8081/repository/maven-releases/</url>
+            </repository>
+        </distributionManagement>
+        
         <dependencies>
             <dependency>
                 <groupId>org.springframework.boot</groupId>

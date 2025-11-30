@@ -85,6 +85,15 @@ pipeline {
             }
         }
         
+        stage('📤 Deploy to Nexus') {
+            steps {
+                echo '📤 Deploying artifact to Nexus Repository...'
+                dir("${BACKEND_DIR}") {
+                    sh 'mvn deploy -DskipTests'
+                }
+            }
+        }
+        
         stage('🐳 Build Docker Images') {
             parallel {
                 stage('Backend Image') {
