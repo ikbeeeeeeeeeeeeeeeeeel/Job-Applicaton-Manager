@@ -32,9 +32,14 @@
         
         <!-- Deploy to Nexus -->
         <distributionManagement>
+            <snapshotRepository>
+                <id>deploymentRepo</id>
+                <name>Nexus Snapshots Repository</name>
+                <url>http://192.168.245.132:8081/repository/maven-snapshots/</url>
+            </snapshotRepository>
             <repository>
                 <id>deploymentRepo</id>
-                <name>Nexus Repository</name>
+                <name>Nexus Releases Repository</name>
                 <url>http://192.168.245.132:8081/repository/maven-releases/</url>
             </repository>
         </distributionManagement>
