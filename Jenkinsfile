@@ -89,7 +89,7 @@ pipeline {
             steps {
                 echo '📤 Deploying artifact to Nexus Repository...'
                 dir("${BACKEND_DIR}") {
-                    sh 'mvn deploy -DskipTests'
+                    sh 'mvn deploy -DskipTests -Djacoco.skip=true'
                 }
             }
         }
