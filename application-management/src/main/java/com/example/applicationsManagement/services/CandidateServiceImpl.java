@@ -31,7 +31,11 @@ public class CandidateServiceImpl implements CandidateService{
     @Override
     public Candidate getCandidateById(Long id) {
         return candidateRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Candidate not found"));
+                .orElseThrow(() -> candidateNotFoundException());
+    }
+    
+    private RuntimeException candidateNotFoundException() {
+        return new RuntimeException("Candidate not found");
     }
     @Override
     public Candidate createCandidate(Candidate candidate) {
@@ -76,10 +80,10 @@ public class CandidateServiceImpl implements CandidateService{
         }
         
         Candidate candidate = candidateRepository.findById(candidateId)
-                .orElseThrow(() -> new RuntimeException("Candidate not found with id: " + candidateId));
+                .orElseThrow(() -> candidateNotFoundWithIdException(candidateId));
 
         JobOffer jobOffer = jobOfferRepository.findById(jobOfferId)
-                .orElseThrow(() -> new RuntimeException("Job offer not found with id: " + jobOfferId + ". This offer may have been deleted."));
+                .orElseThrow(() -> jobOfferNotFoundWithIdException(jobOfferId));
 
         // Check if job offer is open (allow null status or OPEN status)
         String status = jobOffer.getStatus();
@@ -140,7 +144,7 @@ public class CandidateServiceImpl implements CandidateService{
     public List<Application> getApplicationsByCandidate(Long candidateId) {
         // Verify candidate exists
         candidateRepository.findById(candidateId)
-                .orElseThrow(() -> new RuntimeException("Candidate not found"));
+                .orElseThrow(() -> candidateNotFoundException());
         
         // Use repository to fetch applications instead of lazy-loaded collection
         return applicationRepository.findByCandidateId(candidateId);
@@ -156,7 +160,7 @@ public class CandidateServiceImpl implements CandidateService{
     @Override
     public Candidate updateProfile(Long id, java.util.Map<String, Object> updates) {
         Candidate existing = candidateRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Candidate not found with id: " + id));
+                .orElseThrow(() -> candidateNotFoundWithIdException(id));
 
         // Handle password change if provided
         if (updates.containsKey("currentPassword") && updates.containsKey("newPassword")) {
@@ -207,7 +211,7 @@ public class CandidateServiceImpl implements CandidateService{
     public Application updateApplication(Long applicationId, Long candidateId, String resume, String coverLetter) {
         // Find the application
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("Application not found with id: " + applicationId));
+                .orElseThrow(() -> applicationNotFoundWithIdException(applicationId));
         
         // Verify that the application belongs to the candidate
         if (!application.getCandidate().getId().equals(candidateId)) {
@@ -251,7 +255,7 @@ public class CandidateServiceImpl implements CandidateService{
     public void deleteApplication(Long applicationId, Long candidateId) {
         // Find the application
         Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("Application not found with id: " + applicationId));
+                .orElseThrow(() -> applicationNotFoundWithIdException(applicationId));
         
         // Verify that the application belongs to the candidate
         if (!application.getCandidate().getId().equals(candidateId)) {
@@ -265,5 +269,18 @@ public class CandidateServiceImpl implements CandidateService{
         
         System.out.println("🗑️ Deleting application #" + applicationId + " for candidate #" + candidateId);
         applicationRepository.delete(application);
+    }
+    
+    // Helper methods to avoid SonarQube lambda warnings
+    private RuntimeException candidateNotFoundWithIdException(Long id) {
+        return new RuntimeException("Candidate not found with id: " + id);
+    }
+    
+    private RuntimeException jobOfferNotFoundWithIdException(Long id) {
+        return new RuntimeException("Job offer not found with id: " + id + ". This offer may have been deleted.");
+    }
+    
+    private RuntimeException applicationNotFoundWithIdException(Long id) {
+        return new RuntimeException("Application not found with id: " + id);
     }
 }
