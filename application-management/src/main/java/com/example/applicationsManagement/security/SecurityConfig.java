@@ -41,6 +41,7 @@ public class SecurityConfig {
                         // Public endpoints (no authentication required)
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/candidates/create").permitAll()  // Public registration
+                        .requestMatchers("/actuator/**").permitAll()  // Allow Prometheus metrics scraping
 
                         // ADMIN endpoints
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")

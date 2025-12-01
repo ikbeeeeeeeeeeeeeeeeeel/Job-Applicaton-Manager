@@ -64,7 +64,7 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "process_uptime_seconds{application=\"job-manager-backend\"}",
+          "expr": "process_uptime_seconds{job=\"spring-boot-backend\"}",
           "refId": "A"
         }
       ],
@@ -113,7 +113,7 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "rate(http_server_requests_seconds_count{application=\"job-manager-backend\"}[1m]) * 60",
+          "expr": "rate(http_server_requests_seconds_count{job=\"spring-boot-backend\"}[1m]) * 60",
           "refId": "A"
         }
       ],
@@ -170,7 +170,7 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "rate(http_server_requests_seconds_sum{application=\"job-manager-backend\"}[1m]) / rate(http_server_requests_seconds_count{application=\"job-manager-backend\"}[1m])",
+          "expr": "rate(http_server_requests_seconds_sum{job=\"spring-boot-backend\"}[1m]) / rate(http_server_requests_seconds_count{job=\"spring-boot-backend\"}[1m])",
           "refId": "A"
         }
       ],
@@ -238,7 +238,7 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "system_cpu_usage{application=\"job-manager-backend\"} * 100",
+          "expr": "system_cpu_usage{job=\"spring-boot-backend\"} * 100",
           "legendFormat": "CPU Usage",
           "refId": "A"
         }
@@ -307,17 +307,17 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "jvm_memory_used_bytes{application=\"job-manager-backend\",area=\"heap\"}",
+          "expr": "jvm_memory_used_bytes{job=\"spring-boot-backend\",area=\"heap\"}",
           "legendFormat": "Heap Used",
           "refId": "A"
         },
         {
-          "expr": "jvm_memory_max_bytes{application=\"job-manager-backend\",area=\"heap\"}",
+          "expr": "jvm_memory_max_bytes{job=\"spring-boot-backend\",area=\"heap\"}",
           "legendFormat": "Heap Max",
           "refId": "B"
         },
         {
-          "expr": "jvm_memory_used_bytes{application=\"job-manager-backend\",area=\"nonheap\"}",
+          "expr": "jvm_memory_used_bytes{job=\"spring-boot-backend\",area=\"nonheap\"}",
           "legendFormat": "Non-Heap Used",
           "refId": "C"
         }
@@ -386,17 +386,17 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "jvm_threads_live_threads{application=\"job-manager-backend\"}",
+          "expr": "jvm_threads_live_threads{job=\"spring-boot-backend\"}",
           "legendFormat": "Live Threads",
           "refId": "A"
         },
         {
-          "expr": "jvm_threads_daemon_threads{application=\"job-manager-backend\"}",
+          "expr": "jvm_threads_daemon_threads{job=\"spring-boot-backend\"}",
           "legendFormat": "Daemon Threads",
           "refId": "B"
         },
         {
-          "expr": "jvm_threads_peak_threads{application=\"job-manager-backend\"}",
+          "expr": "jvm_threads_peak_threads{job=\"spring-boot-backend\"}",
           "legendFormat": "Peak Threads",
           "refId": "C"
         }
@@ -465,7 +465,7 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "rate(http_server_requests_seconds_count{application=\"job-manager-backend\",uri!~\"/actuator.*\"}[1m])",
+          "expr": "rate(http_server_requests_seconds_count{job=\"spring-boot-backend\",uri!~\"/actuator.*\"}[1m])",
           "legendFormat": "{{method}} {{uri}} - {{status}}",
           "refId": "A"
         }
@@ -534,7 +534,7 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{application=\"job-manager-backend\",uri!~\"/actuator.*\"}[1m])) by (le, uri, method))",
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"spring-boot-backend\",uri!~\"/actuator.*\"}[1m])) by (le, uri, method))",
           "legendFormat": "{{method}} {{uri}} (p95)",
           "refId": "A"
         }
@@ -603,17 +603,17 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "hikaricp_connections_active{application=\"job-manager-backend\"}",
+          "expr": "hikaricp_connections_active{job=\"spring-boot-backend\"}",
           "legendFormat": "Active Connections",
           "refId": "A"
         },
         {
-          "expr": "hikaricp_connections_idle{application=\"job-manager-backend\"}",
+          "expr": "hikaricp_connections_idle{job=\"spring-boot-backend\"}",
           "legendFormat": "Idle Connections",
           "refId": "B"
         },
         {
-          "expr": "hikaricp_connections_max{application=\"job-manager-backend\"}",
+          "expr": "hikaricp_connections_max{job=\"spring-boot-backend\"}",
           "legendFormat": "Max Connections",
           "refId": "C"
         }
@@ -682,7 +682,7 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "rate(jvm_gc_pause_seconds_sum{application=\"job-manager-backend\"}[1m])",
+          "expr": "rate(jvm_gc_pause_seconds_sum{job=\"spring-boot-backend\"}[1m])",
           "legendFormat": "{{action}} - {{cause}}",
           "refId": "A"
         }
