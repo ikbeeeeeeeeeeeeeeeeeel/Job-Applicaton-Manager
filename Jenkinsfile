@@ -6,6 +6,11 @@ pipeline {
         jdk 'JDK-21'
     }
     
+    // Disable auto-trigger from SCM changes
+    options {
+        disableConcurrentBuilds()
+    }
+    
     environment {
         // Application
         BACKEND_DIR = 'application-management'
