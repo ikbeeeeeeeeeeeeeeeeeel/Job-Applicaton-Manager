@@ -6,11 +6,6 @@ pipeline {
         jdk 'JDK-21'
     }
     
-    // Disable auto-trigger from SCM changes
-    options {
-        disableConcurrentBuilds()
-    }
-    
     environment {
         // Application
         BACKEND_DIR = 'application-management'
@@ -148,8 +143,21 @@ pipeline {
                 script {
                     sleep 30
                     sh '''
+                        # Check Backend
                         curl -f http://localhost:8089/actuator/health || exit 1
-                        echo "Backend is healthy ✅"
+                        echo "✅ Backend is healthy"
+                        
+                        # Check Prometheus
+                        curl -f http://localhost:9090/-/healthy || exit 1
+                        echo "✅ Prometheus is healthy"
+                        
+                        # Check Grafana
+                        curl -f http://localhost:3000/api/health || exit 1
+                        echo "✅ Grafana is healthy"
+                        
+                        # Verify Prometheus can scrape backend
+                        curl -s http://localhost:9090/api/v1/targets | grep -q "spring-boot-backend" || exit 1
+                        echo "✅ Prometheus is scraping backend metrics"
                     '''
                 }
             }
